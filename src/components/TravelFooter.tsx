@@ -79,7 +79,7 @@ export default function TravelFooter() {
             <ul className="space-y-2.5">
               <li className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-teal-400" />
-                <span>+91 98765 43210 (24x7 Priority)</span>
+                <span>+91 80000 12345 (24x7 Priority)</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-teal-400" />

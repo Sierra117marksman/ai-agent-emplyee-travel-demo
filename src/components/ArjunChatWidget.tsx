@@ -632,7 +632,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                   required
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
+                  placeholder="Your Full Name"
                   className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none"
                 />
               </div>
@@ -646,7 +646,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                   required
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="e.g. +91 98765 43210"
+                  placeholder="+91 10-digit mobile number"
                   className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none"
                 />
               </div>
@@ -659,7 +659,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                   type="email"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="e.g. rahul@example.com"
+                  placeholder="yourname@example.com"
                   className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none"
                 />
               </div>

@@ -54,11 +54,11 @@ export default function TravelHeader() {
         {/* Right action group */}
         <div className="flex items-center gap-3">
           <a
-            href="tel:+919876543210"
+            href="tel:+918000012345"
             className="hidden sm:flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors"
           >
             <Phone className="w-3.5 h-3.5 text-teal-400" />
-            <span>+91 98765 43210</span>
+            <span>+91 80000 12345</span>
           </a>
 
           <Link

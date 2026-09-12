@@ -30,27 +30,35 @@ function extractCustomerState(messages: ChatMessage[]): CustomerState {
   const fullText = messages.map((m) => m.content).join(' ');
   const lower = fullText.toLowerCase();
 
-  // 1. Budget extraction (handles 35k, 50k, 80,000, 45000, ₹35,000, rs 60k)
-  const budgetMatch = lower.match(/(?:budget|around|under|₹|rs\.?|\bfor\b)\s*([0-9]{1,3}(?:,[0-9]{3})*|\d{2,3})k?\b/i);
+  // 1. Budget extraction (handles 35k, 50k, 80,000, ₹35,000, rs 60k, around 50,000)
+  const budgetMatch = lower.match(/(?:budget(?:\s*is|\s*of)?|around|under|approx\.?|max\.?|₹|rs\.?|inr)\s*(?:of\s*)?(?:₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*|\d{2,3})k?\b/i);
   if (budgetMatch) {
     const rawStr = budgetMatch[1].replace(/,/g, '');
     const num = parseInt(rawStr, 10);
     if (!isNaN(num)) {
-      if (budgetMatch[0].toLowerCase().includes('k') || num < 1000) {
+      if (budgetMatch[0].toLowerCase().includes('k')) {
         state.budgetPerPerson = num * 1000;
-      } else {
+      } else if (num >= 1000) {
         state.budgetPerPerson = num;
+      } else if (
+        budgetMatch[0].includes('₹') ||
+        budgetMatch[0].toLowerCase().includes('rs') ||
+        budgetMatch[0].toLowerCase().includes('inr') ||
+        budgetMatch[0].toLowerCase().includes('budget')
+      ) {
+        state.budgetPerPerson = num * 1000;
       }
     }
   }
 
   // 2. Travelers count (handles "4 people", "for two", "couple", "family of 5", "2 pax")
+  // NOTE: "honeymoon" must NEVER assume 2 travelers automatically
   const paxNumberMatch = lower.match(/(\d+)\s*(?:people|person|pax|travellers|travelers|adults)/i);
   if (paxNumberMatch) {
     state.travelers = parseInt(paxNumberMatch[1], 10);
-  } else if (lower.includes('for two') || lower.includes('couple') || lower.includes('honeymoon')) {
+  } else if (lower.includes('for two') || lower.includes('couple') || lower.includes('2 of us') || lower.includes('two people') || lower.includes('two travelers')) {
     state.travelers = 2;
-  } else if (lower.includes('for 4') || lower.includes('4 people')) {
+  } else if (lower.includes('for 4') || lower.includes('4 people') || lower.includes('four people') || lower.includes('four travelers')) {
     state.travelers = 4;
   }
 
@@ -90,7 +98,7 @@ function extractCustomerState(messages: ChatMessage[]): CustomerState {
   }
 
   // 7. Check for uncataloged destination inquiry (e.g. "Mars", "Paris", "Antarctica")
-  const destRegex = /(?:visit|trip to|travel to|package for|in|to)\s+([a-zA-Z]{3,20})/i;
+  const destRegex = /(?:visit|trip to|travel to|packages?\s+(?:for|to|in|of)|going to|holiday in|in|to)\s+([a-zA-Z]{3,20})/i;
   const matchDest = lower.match(destRegex);
   if (matchDest && !state.destination) {
     const candidate = matchDest[1].trim();
@@ -238,6 +246,44 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         message: `We do not currently offer travel packages for ${state.requestedUncatalogedDestination}. Our official 2026 portfolio is curated exclusively for: ${availableDestinations.join(', ')}. Would you like to explore any of these destinations, or should I connect you with our bespoke private charter desk?`,
+        suggestedPackages: [],
+        extractedLead: state
+      });
+    }
+
+    // Check if the user has provided enough qualification details to recommend packages.
+    // If they only expressed an abstract wish (e.g. "I want a honeymoon trip" or "Looking for a vacation")
+    // without destination, budget, or pax/duration, Arjun MUST ask for the missing details first.
+    const hasSufficientQualification = Boolean(
+      state.destination ||
+      state.budgetPerPerson ||
+      (state.travelers && state.durationDays)
+    );
+
+    if (!hasSufficientQualification) {
+      const styleWord = state.tripStyle ? ` ${state.tripStyle}` : '';
+      const askMissingPrompt = `You are Arjun Patel, Senior Travel Sales Specialist at Wanderlust Journeys.
+The traveler has expressed interest in a${styleWord} journey, but has not shared their destination preference, budget per person, number of travelers, or duration.
+CRITICAL RULES:
+- DO NOT assume any destination (do NOT assume Bali, Kashmir, or any other place).
+- DO NOT assume any budget (do NOT assume ₹44,999 or ₹45,000).
+- DO NOT assume 2 travelers.
+- Warmly acknowledge their interest in a${styleWord} getaway.
+- Ask for their missing details:
+  1. Preferred destination or region (or whether they prefer domestic India or international)
+  2. Approximate budget per person
+  3. Number of travelers and trip duration
+Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
+
+      const assistantReply = await queryGroq(askMissingPrompt, messages);
+      const fallbackPrompt = `Namaste! A${styleWord} getaway is a truly wonderful milestone. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:
+1. Do you have a preferred destination in mind, or are you open to domestic and international journeys?
+2. What is your approximate budget per person?
+3. How many travelers will be joining and for how many days?`;
+
+      return NextResponse.json({
+        success: true,
+        message: assistantReply || fallbackPrompt,
         suggestedPackages: [],
         extractedLead: state
       });

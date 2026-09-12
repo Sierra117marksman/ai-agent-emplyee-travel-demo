@@ -49,7 +49,7 @@ export default function AdminCrmClient({ initialLeads }: AdminCrmClientProps) {
 
   const totalTokensCollected = leads
     .filter((l) => l.status === 'BOOKING_CONFIRMED' || l.status === 'TOKEN_PAID')
-    .reduce((acc, curr) => acc + (curr.tokenAmount || 2000), 0);
+    .reduce((acc, curr) => acc + (curr.tokenAmount || 0), 0);
 
   const confirmedBookingsCount = leads.filter(
     (l) => l.status === 'BOOKING_CONFIRMED' || l.status === 'TOKEN_PAID'
@@ -277,7 +277,7 @@ export default function AdminCrmClient({ initialLeads }: AdminCrmClientProps) {
                       {/* Token Ledger */}
                       <td className="py-4 px-4">
                         <div className="font-bold text-white">
-                          ₹{(lead.tokenAmount || 2000).toLocaleString('en-IN')}
+                          {lead.tokenAmount ? `₹${lead.tokenAmount.toLocaleString('en-IN')}` : '—'}
                         </div>
                         {lead.razorpayPaymentId ? (
                           <div className="text-[11px] text-emerald-400 font-mono flex items-center gap-1 mt-0.5">
