@@ -1,4 +1,4 @@
-import { TravelPackage } from '@/lib/packages';
+import { TravelPackage, DestinationFlexibility, AlternativePackage } from '@/lib/packages';
 
 export type AgentGoal =
   | 'GREET'
@@ -21,10 +21,12 @@ export type AgentIntent =
 
 export interface CustomerPreferences {
   destination: string | null;
+  destinationFlexibility: DestinationFlexibility;
   budgetPerPerson: number | null;
   travelers: number | null;
   durationDays: number | null;
   tripStyle: string | null;
+  interests: string[];
   isDomesticOnly: boolean;
   excludePackageId?: string | null;
   requestedUncatalogedDestination?: string | null;
@@ -90,9 +92,12 @@ export interface AgentConfig {
 }
 
 export interface PerceptionResult {
+  isGreeting: boolean;
   detectedStyle: string | null;
+  interests: string[];
   isNewInquiry: boolean;
   destination: string | null;
+  destinationFlexibility: DestinationFlexibility;
   budgetPerPerson: number | null;
   travelers: number | null;
   durationDays: number | null;
@@ -112,10 +117,14 @@ export interface PerceptionResult {
 export interface AgentTurnResult {
   success: boolean;
   message: string;
-  suggestedPackages: TravelPackage[];
+  qualifyingPackages: TravelPackage[];
+  alternativePackages: AlternativePackage[];
+  suggestedPackages: TravelPackage[]; // Strictly qualifyingPackages (invariant)
   extractedLead: {
     tripStyle: string | null;
+    interests: string[];
     destination: string | null;
+    destinationFlexibility?: DestinationFlexibility;
     budgetPerPerson: number | null;
     travelers: number | null;
     durationDays: number | null;

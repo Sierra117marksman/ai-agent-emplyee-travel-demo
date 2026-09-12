@@ -1,6 +1,5 @@
 import {
-  TRAVEL_PACKAGES,
-  TravelPackage
+  TRAVEL_PACKAGES
 } from '@/lib/packages';
 import {
   AgentConfig,
@@ -65,49 +64,57 @@ export async function runAgentTurn(
 
   // 1. Greet if no messages
   if (messages.length === 0) {
+    const initialMemory: AgentMemory = {
+      customer: {
+        name: null,
+        phone: null,
+        email: null,
+        preferences: {
+          destination: null,
+          destinationFlexibility: 'unknown',
+          budgetPerPerson: null,
+          travelers: null,
+          durationDays: null,
+          tripStyle: null,
+          interests: [],
+          isDomesticOnly: false
+        }
+      },
+      conversation: {
+        currentIntent: 'GREETING',
+        lastObjection: null,
+        isPriceObjectionActive: false,
+        missingFields: ['destination', 'budget', 'travelers', 'duration'],
+        unsupportedDestination: null,
+        turnCount: 0
+      },
+      business: {
+        selectedPackageId: null,
+        selectedPackageTitle: null,
+        leadStatus: 'NEW',
+        tokenOrderId: null,
+        tokenPaymentId: null,
+        tokenAmount: config.tokenPolicyAmount
+      }
+    };
+
     return {
       success: true,
       message: `Namaste! 🙏 Welcome to ${config.companyName}. I am ${config.name}, your ${config.role}. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across ${availableDestinations.join(', ')}.`,
+      qualifyingPackages: [],
+      alternativePackages: [],
       suggestedPackages: [],
       extractedLead: {
+        tripStyle: null,
+        interests: [],
         destination: null,
+        destinationFlexibility: 'unknown',
         budgetPerPerson: null,
         travelers: null,
         durationDays: null,
-        tripStyle: null,
         isDomesticOnly: false
       },
-      memory: {
-        customer: {
-          name: null,
-          phone: null,
-          email: null,
-          preferences: {
-            destination: null,
-            budgetPerPerson: null,
-            travelers: null,
-            durationDays: null,
-            tripStyle: null,
-            isDomesticOnly: false
-          }
-        },
-        conversation: {
-          currentIntent: 'GREETING',
-          lastObjection: null,
-          isPriceObjectionActive: false,
-          missingFields: ['destination', 'budget', 'travelers', 'duration'],
-          unsupportedDestination: null,
-          turnCount: 0
-        },
-        business: {
-          selectedPackageId: null,
-          selectedPackageTitle: null,
-          leadStatus: 'NEW',
-          tokenOrderId: null,
-          tokenPaymentId: null,
-          tokenAmount: config.tokenPolicyAmount
-        }
-      }
+      memory: initialMemory
     };
   }
 
@@ -126,7 +133,9 @@ export async function runAgentTurn(
   // Helper for consistent lead return
   const getExtractedLead = (mem: AgentMemory) => ({
     tripStyle: mem.customer.preferences.tripStyle,
+    interests: mem.customer.preferences.interests,
     destination: mem.customer.preferences.destination,
+    destinationFlexibility: mem.customer.preferences.destinationFlexibility,
     budgetPerPerson: mem.customer.preferences.budgetPerPerson,
     travelers: mem.customer.preferences.travelers,
     durationDays: mem.customer.preferences.durationDays,
@@ -138,11 +147,31 @@ export async function runAgentTurn(
 
   // 4. Execution & Synthesis Phase by Goal
 
-  // Goal A: RESOLVE_PAYMENT_INQUIRY
+  // Goal: GREET
+  if (plan.goal === 'GREET') {
+    return {
+      success: true,
+      message: `Namaste! 🙏 Welcome to ${config.companyName}. I am ${config.name}, your ${config.role}. Where are you thinking of traveling, and what kind of experience are you dreaming of? We currently offer hand-crafted journeys across ${availableDestinations.join(', ')}.`,
+      qualifyingPackages: [],
+      alternativePackages: [],
+      suggestedPackages: [],
+      extractedLead: getExtractedLead(memory),
+      memory,
+      executedTool: {
+        toolName: 'qualify_lead',
+        input: memory.customer.preferences,
+        output: { isQualified: false }
+      }
+    };
+  }
+
+  // Goal: RESOLVE_PAYMENT_INQUIRY
   if (plan.goal === 'RESOLVE_PAYMENT_INQUIRY') {
     return {
       success: true,
       message: `I cannot independently confirm your booking without automated verification from our payment gateway. If you completed a transaction, our backend will receive the cryptographic confirmation shortly and update your CRM dossier. Please ensure you have finalized the checkout modal or share your transaction reference ID so our human travel desk can assist.`,
+      qualifyingPackages: [],
+      alternativePackages: [],
       suggestedPackages: [],
       extractedLead: getExtractedLead(memory),
       memory,
@@ -154,12 +183,14 @@ export async function runAgentTurn(
     };
   }
 
-  // Goal B: PREPARE_BOOKING_TOKEN (Custom token attempt)
+  // Goal: PREPARE_BOOKING_TOKEN (Custom token attempt)
   if (plan.goal === 'PREPARE_BOOKING_TOKEN' && perception.isCustomTokenAttempt) {
     const tokenResult = await prepareBookingTokenTool.execute({}, memory);
     return {
       success: true,
       message: `Our booking reservation token is fixed at ₹${tokenResult.tokenAmount} per our standard agency policy. This token is 100% refundable and serves to lock in your private villa allocation and chauffeur slots while our travel designer customizes your flights. The system cannot accept custom token amounts. Would you like to proceed with the standard ₹${tokenResult.tokenAmount} booking token?`,
+      qualifyingPackages: [],
+      alternativePackages: [],
       suggestedPackages: [],
       extractedLead: getExtractedLead(memory),
       memory,
@@ -171,7 +202,7 @@ export async function runAgentTurn(
     };
   }
 
-  // Goal C: HANDLE_UNSUPPORTED_DESTINATION
+  // Goal: HANDLE_UNSUPPORTED_DESTINATION
   if (plan.goal === 'HANDLE_UNSUPPORTED_DESTINATION') {
     const uncataloged = perception.requestedUncatalogedDestination || 'your requested destination';
     const escalation = await escalateToDeskTool.execute(
@@ -185,6 +216,8 @@ export async function runAgentTurn(
     return {
       success: true,
       message: `We do not currently offer travel packages for ${uncataloged}. Our official 2026 portfolio is curated exclusively for: ${availableDestinations.join(', ')}. Would you like to explore any of these destinations, or should I connect you with our bespoke private charter desk?`,
+      qualifyingPackages: [],
+      alternativePackages: [],
       suggestedPackages: [],
       extractedLead: getExtractedLead(memory),
       memory,
@@ -196,7 +229,7 @@ export async function runAgentTurn(
     };
   }
 
-  // Goal D: HANDLE_PRICE_OBJECTION
+  // Goal: HANDLE_PRICE_OBJECTION
   if (plan.goal === 'HANDLE_PRICE_OBJECTION') {
     const objectionResult = await handlePriceObjectionTool.execute(undefined, memory);
 
@@ -215,6 +248,8 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     return {
       success: true,
       message: assistantReply || fallbackReply,
+      qualifyingPackages: [],
+      alternativePackages: [],
       suggestedPackages: [],
       extractedLead: getExtractedLead(memory),
       memory,
@@ -226,13 +261,17 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     };
   }
 
-  // Goal E: QUALIFY_LEAD (Qualification Gate - BUG 1)
+  // Goal: QUALIFY_LEAD
   if (plan.goal === 'QUALIFY_LEAD') {
-    const styleWord = memory.customer.preferences.tripStyle ? ` ${memory.customer.preferences.tripStyle}` : '';
+    const hasInterests = memory.customer.preferences.interests.length > 0;
+    const interestStr = hasInterests ? memory.customer.preferences.interests.join(' & ') : '';
+    const styleStr = memory.customer.preferences.tripStyle || '';
+
     const askMissingPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
 The traveler is inquiring about travel, but key qualification details are missing.
 - If inquiring about ${config.companyName}, introduce ${config.companyName} warmly as a premier luxury travel atelier curating private villa escapes across: ${availableDestinations.join(', ')}.
-- If inquiring about a trip, warmly acknowledge their interest in a${styleWord} journey.
+- If inquiring about an interest (like ${interestStr || 'scenic landscapes'}), acknowledge their interest warmly without assuming any honeymoon or milestone.
+- If inquiring about a trip style (like ${styleStr}), acknowledge their style warmly.
 - Inquire about their missing preferences:
   1. Preferred destination or region (or whether domestic India or international)
   2. Approximate budget per person
@@ -240,16 +279,14 @@ The traveler is inquiring about travel, but key qualification details are missin
 CRITICAL RULES:
 - DO NOT assume any destination (do NOT assume Bali or Kashmir).
 - DO NOT assume any budget (do NOT assume ₹44,999 or ₹45,000).
-- DO NOT assume 2 travelers.
+- DO NOT assume any travelers.
+- DO NOT use the word "milestone" unless the traveler explicitly mentioned wedding or honeymoon.
 - DO NOT recommend or list catalog packages until qualified (suggestedPackages = []).
 Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
 
     const assistantReply = await queryGroq(askMissingPrompt, messages);
-    let fallbackPrompt = `Namaste! 🙏 A${styleWord} getaway is a truly wonderful milestone. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:
-1. Do you have a preferred destination in mind, or are you open to domestic and international journeys?
-2. What is your approximate budget per person?
-3. How many travelers will be joining and for how many days?`;
 
+    let fallbackPrompt = '';
     if (
       latestLower.includes('wanderlust') ||
       latestLower.includes('who are you') ||
@@ -257,11 +294,28 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       latestLower.includes('company')
     ) {
       fallbackPrompt = `Namaste! 🙏 ${config.companyName} is a premier bespoke travel atelier. We craft ultra-luxury private villa escapes, mountain retreats, and cultural journeys with dedicated chauffeurs, 5-star boutique stays, and VIP concierge access. Our official 2026 portfolio features hand-crafted journeys across ${availableDestinations.join(', ')}. How may I assist with your travel dreams today?`;
+    } else if (hasInterests) {
+      fallbackPrompt = `Namaste! 🙏 Experiencing ${interestStr} is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:
+1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?
+2. What is your approximate budget per person?
+3. How many travelers will be joining and for how many days?`;
+    } else if (memory.customer.preferences.tripStyle) {
+      fallbackPrompt = `Namaste! 🙏 A ${memory.customer.preferences.tripStyle} getaway is a wonderful journey. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:
+1. Do you have a preferred destination in mind, or are you open to domestic and international options?
+2. What is your approximate budget per person?
+3. How many travelers will be joining and for how many days?`;
+    } else {
+      fallbackPrompt = `Namaste! 🙏 To help our travel designers curate the ideal itinerary for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:
+1. Do you have a preferred destination in mind, or are you open to domestic and international journeys?
+2. What is your approximate budget per person?
+3. How many travelers will be joining and for how many days?`;
     }
 
     return {
       success: true,
       message: assistantReply || fallbackPrompt,
+      qualifyingPackages: [],
+      alternativePackages: [],
       suggestedPackages: [],
       extractedLead: getExtractedLead(memory),
       memory,
@@ -273,18 +327,62 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     };
   }
 
-  // Goal F & G: RECOMMEND_PACKAGES or PREPARE_BOOKING_TOKEN
-  const searchResult: TravelPackage[] = await searchPackagesTool.execute(
+  // Goal: RECOMMEND_PACKAGES or PREPARE_BOOKING_TOKEN
+  const searchResult = await searchPackagesTool.execute(
     plan.action.parameters as SearchPackagesInput,
     memory
   );
 
-  const matchedPackages = searchResult;
-  const topPackages = matchedPackages.slice(0, 2);
+  const qualifyingPackages = searchResult.qualifyingPackages;
+  const alternativePackages = searchResult.alternativePackages;
+  const topQualifying = qualifyingPackages.slice(0, 2);
 
-  const catalogSummary = TRAVEL_PACKAGES.map(
+  // =========================================================================
+  // QUALIFYING PACKAGE INVARIANT ENFORCEMENT:
+  // suggestedPackages MUST strictly reflect qualifyingPackages.
+  // Under NO circumstances may an alternative package be promoted to suggestedPackages.
+  // =========================================================================
+  const suggestedPackages = topQualifying;
+
+  // Case 1: Zero qualifying packages found (Hard constraints eliminated all packages)
+  if (topQualifying.length === 0) {
+    const dest = memory.customer.preferences.destination;
+    const budget = memory.customer.preferences.budgetPerPerson;
+    const budgetStr = budget ? `₹${budget.toLocaleString('en-IN')}` : '';
+
+    let explanationMessage = '';
+    if (dest && budget) {
+      const destPkg = TRAVEL_PACKAGES.find(
+        (p) => p.destination.toLowerCase().includes(dest.toLowerCase())
+      );
+      const startingRate = destPkg ? `₹${destPkg.pricePerPerson.toLocaleString('en-IN')}` : '₹38,500';
+      explanationMessage = `We do not currently have a ${dest} package within ${budgetStr} per person. Our official ${dest} journey starts at ${startingRate} per person. Would you like to consider expanding your budget for ${dest}, or should we explore other beautiful destinations within ${budgetStr}?`;
+    } else if (budget) {
+      explanationMessage = `We do not currently have travel packages within ${budgetStr} per person. Our official curated journeys begin at ₹29,999 per person for Kerala Backwaters. Would you like to adjust your budget, or connect with our concierge desk for tailored options?`;
+    } else {
+      explanationMessage = `We could not find matching itineraries in our catalog for your exact criteria. Our official destinations include: ${availableDestinations.join(', ')}. Would you like to explore alternative options?`;
+    }
+
+    return {
+      success: true,
+      message: explanationMessage,
+      qualifyingPackages: [],
+      alternativePackages,
+      suggestedPackages: [], // strictly empty
+      extractedLead: getExtractedLead(memory),
+      memory,
+      executedTool: {
+        toolName: plan.action.toolName,
+        input: plan.action.parameters,
+        output: searchResult
+      }
+    };
+  }
+
+  // Case 2: Qualifying packages exist
+  const catalogSummary = topQualifying.map(
     (p) =>
-      `- [${p.id}] ${p.name} | Dest: ${p.destination} (${p.country}) | ₹${p.pricePerPerson.toLocaleString('en-IN')}/pax | ${p.duration} | Suitable: ${p.suitableFor.join(', ')} | Highlights: ${p.highlights[0]}`
+      `- [${p.id}] ${p.name} | Dest: ${p.destination} (${p.country}) | ₹${p.pricePerPerson.toLocaleString('en-IN')}/pax | ${p.duration} | Highlights: ${p.highlights[0]}`
   ).join('\n');
 
   const systemPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
@@ -297,17 +395,18 @@ PERSONALITY & STANDARDS:
 - If the traveler asks to book an option (e.g., "Can I book the second option?", "let's book option 2"): Confirm their choice warmly, ask for their name and mobile number, and invite them to click "Pay ₹2,000 Booking Token".
 - Keep your response to 2-3 focused paragraphs.
 
-CURRENT OFFICIAL CATALOG:
+QUALIFYING PACKAGES (ONLY THESE MAY BE RECOMMENDED):
 ${catalogSummary}
 
 CURRENT CUSTOMER REQUIREMENTS (EXTRACTED):
-- Destination: ${memory.customer.preferences.destination || 'Not specified yet'}
+- Destination: ${memory.customer.preferences.destination || 'Not specified (flexible)'}
+- Flexibility: ${memory.customer.preferences.destinationFlexibility}
 - Budget: ${memory.customer.preferences.budgetPerPerson ? '₹' + memory.customer.preferences.budgetPerPerson.toLocaleString('en-IN') + '/pax' : 'Not specified'}
 - Travelers: ${memory.customer.preferences.travelers || 'Not specified'}
 - Duration: ${memory.customer.preferences.durationDays ? memory.customer.preferences.durationDays + ' days' : 'Not specified'}
 - Style: ${memory.customer.preferences.tripStyle || 'Not specified'}
+- Interests: ${memory.customer.preferences.interests.join(', ') || 'None'}
 - India Domestic Only: ${memory.customer.preferences.isDomesticOnly ? 'Yes' : 'No'}
-- Exclude: ${memory.customer.preferences.excludePackageId || 'None'}
 `;
 
   let assistantText = await queryGroq(systemPrompt, messages);
@@ -316,12 +415,12 @@ CURRENT CUSTOMER REQUIREMENTS (EXTRACTED):
     if (perception.isBookingIntent) {
       const chosenPkg =
         perception.selectedOptionNumber === 2
-          ? matchedPackages[1] || matchedPackages[0]
-          : matchedPackages[0];
+          ? topQualifying[1] || topQualifying[0]
+          : topQualifying[0];
       const pkgName = chosenPkg ? `**${chosenPkg.name}**` : 'your selected package';
       assistantText = `Wonderful decision! ${pkgName} is an extraordinary journey. You can confirm your dates by clicking the **Pay ₹2,000 Booking Token** button below. Once your token is confirmed via our secure Razorpay gateway, our senior concierge will connect with you to personalize flights and luxury inclusions. Please also share your full name and mobile number if you haven't already!`;
-    } else if (topPackages.length > 0) {
-      const listText = topPackages
+    } else {
+      const listText = topQualifying
         .map(
           (p) =>
             `• **${p.name}** (${p.duration} — ₹${p.pricePerPerson.toLocaleString('en-IN')}/person)\n  *${p.description}*`
@@ -329,15 +428,15 @@ CURRENT CUSTOMER REQUIREMENTS (EXTRACTED):
         .join('\n\n');
 
       assistantText = `Based on your preferences, here are our recommended itineraries from our catalog:\n\n${listText}\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?`;
-    } else {
-      assistantText = `I would love to help you plan your journey! To find the best options in our portfolio (${availableDestinations.join(', ')}), could you share your approximate budget per person, number of travelers, and preferred style of trip?`;
     }
   }
 
   return {
     success: true,
     message: assistantText,
-    suggestedPackages: topPackages,
+    qualifyingPackages,
+    alternativePackages,
+    suggestedPackages, // Strictly qualifying
     extractedLead: getExtractedLead(memory),
     memory,
     executedTool: {

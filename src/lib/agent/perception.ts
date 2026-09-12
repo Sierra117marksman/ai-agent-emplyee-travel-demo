@@ -1,20 +1,13 @@
-import { TravelPackage } from '@/lib/packages';
+import { TravelPackage, DestinationFlexibility } from '@/lib/packages';
 import { AgentMemory, PerceptionResult } from './types';
 
-// Generic Price / Budget Objection detector (handles natural-language variations without hardcoded single phrases)
+// Generic Price / Budget Objection detector
 export function isPriceObjection(text: string): boolean {
   const lower = text.toLowerCase().trim();
 
-  // Pattern A: Expressions stating price, cost, or budget is excessive / high / steep
   const expensivePattern = /\b(?:price|prices|rate|rates|cost|costs|pricing|quote|quotes|package|packages|it|this|that|those)\s+(?:is|are|seems?|feels?|looks?|was)?\s*(?:way\s+)?(?:too\s+(?:high|much|expensive|steep|costly|pricey)|above\s+(?:my|our)\s+budget|over\s+(?:my|our)\s+budget|beyond\s+(?:my|our)\s+budget|out\s+of\s+(?:my|our)\s+(?:budget|price\s+range)|exceeds?\s+(?:my|our)\s+budget)\b/i;
-
-  // Pattern B: Standalone / modifier phrases for too expensive
   const tooExpensivePattern = /\b(?:way\s+|a\s+bit\s+|a\s+little\s+)?too\s+(?:expensive|costly|pricey|high|steep)\b/i;
-
-  // Pattern C: Requests for cheaper or more affordable alternatives
   const cheaperPattern = /\b(?:cheaper|cheapest|more\s+affordable|less\s+expensive|lower\s+(?:price|cost|budget|rates?)|economical|pocket[- ]friendly|budget[- ]friendly|cut\s+the\s+cost)\b/i;
-
-  // Pattern D: Affordability negative statements
   const cannotAffordPattern = /\b(?:can't|cannot|cant|unable\s+to)\s+afford\b|\b(?:out\s+of|beyond)\s+(?:my|our)\s+(?:budget|range|reach)\b/i;
 
   return (
@@ -25,16 +18,68 @@ export function isPriceObjection(text: string): boolean {
   );
 }
 
-// Generic Trip Style Detector
+// Pure Travel Companionship / Style (strictly excludes landscape / activity interests)
 export function detectTripStyle(text: string): string | null {
   const lower = text.toLowerCase();
   if (/\b(?:honeymoon|romantic|couples?)\b/i.test(lower)) return 'honeymoon';
-  if (/\b(?:adventure|snorkeling|trek(?:king)?|scuba|rafting|hiking)\b/i.test(lower)) return 'adventure';
+  if (/\b(?:adventure|snorkeling|scuba|rafting)\b/i.test(lower)) return 'adventure';
   if (/\b(?:family|kids|children)\b/i.test(lower)) return 'family';
   if (/\b(?:luxury|5-star|ultra luxury|boutique villa)\b/i.test(lower)) return 'luxury';
-  if (/\b(?:cold|snow|mountains?|himalayan|alpine)\b/i.test(lower)) return 'mountains';
   if (/\b(?:relax(?:ed|ing)?|peaceful|ayurveda|spa|wellness)\b/i.test(lower)) return 'relaxed';
   return null;
+}
+
+// Landscape, Nature, and Activity Interests (distinct from Trip Style)
+export function detectInterests(text: string): string[] {
+  const lower = text.toLowerCase();
+  const interests: string[] = [];
+
+  if (/\b(?:mountains?|hills?|hill\s+station|snow|himalayan|alpine)\b/i.test(lower)) {
+    interests.push('mountains');
+  }
+  if (/\b(?:beach(?:es)?|islands?|coastal|sea|lagoon)\b/i.test(lower)) {
+    interests.push('beaches');
+  }
+  if (/\b(?:desert|dunes?|safari)\b/i.test(lower)) {
+    interests.push('desert');
+  }
+  if (/\b(?:tea[- ]gardens?|plantations?|forest|nature|jungle)\b/i.test(lower)) {
+    interests.push('nature');
+  }
+  if (/\b(?:houseboat|backwaters?)\b/i.test(lower)) {
+    interests.push('houseboat');
+  }
+  if (/\b(?:culture|temples?|heritage|historic)\b/i.test(lower)) {
+    interests.push('culture');
+  }
+
+  return interests;
+}
+
+// Destination Flexibility Classifier ('unknown' | 'yes' | 'no')
+export function detectDestinationFlexibility(text: string): DestinationFlexibility {
+  const lower = text.toLowerCase();
+
+  // Explicit openness indicators
+  if (
+    /\b(?:open\s+to\s+(?:other|any|all|different)\s+destinations?|open\s+to\s+(?:anything|anywhere|alternatives)|don't\s+care\s+where|anywhere|wherever|any\s+destination|other\s+options?|other\s+destinations?)\b/i.test(lower) ||
+    /\b(?:somewhere\s+in\s+india|anywhere\s+in\s+india)\b/i.test(lower)
+  ) {
+    return 'yes';
+  }
+
+  // Explicit strictness indicators
+  if (/\b(?:strictly|only\s+(?:kashmir|bali|dubai|kerala|phuket|maldives)|nowhere\s+else)\b/i.test(lower)) {
+    return 'no';
+  }
+
+  return 'unknown';
+}
+
+// Pure greeting detector
+export function isPureGreeting(text: string): boolean {
+  const trimmed = text.trim();
+  return /^(?:hello|hi|hey|namaste|good\s+(?:morning|afternoon|evening)|hola)(?:\s+(?:arjun|there|team|wanderlust|travel|desk))?[!.]*$/i.test(trimmed);
 }
 
 // Generic New Trip Inquiry / Style Shift Detector
@@ -65,13 +110,24 @@ export function extractBudgetFromText(text: string): number | null {
       }
     }
   }
+
+  // Fallback pattern for numbers explicitly paired with "per person" / "each" e.g. "15000 per person"
+  const perPersonMatch = lower.match(/([0-9]{1,3}(?:,[0-9]{3})*|\d{4,6})\s*(?:per\s+person|each|\/pax|\/person)/i);
+  if (perPersonMatch) {
+    const rawStr = perPersonMatch[1].replace(/,/g, '');
+    const num = parseInt(rawStr, 10);
+    if (!isNaN(num) && num >= 1000) {
+      return num;
+    }
+  }
+
   return null;
 }
 
 // Travelers Count Extractor
 export function extractTravelersFromText(text: string): number | null {
   const lower = text.toLowerCase();
-  const paxNumberMatch = lower.match(/(\d+)\s*(?:people|person|pax|travellers|travelers|adults)/i);
+  const paxNumberMatch = lower.match(/(\d+)\s*(?:people|person|persons|pax|travellers|travelers|adults)/i);
   if (paxNumberMatch) {
     return parseInt(paxNumberMatch[1], 10);
   }
@@ -248,10 +304,12 @@ export function perceiveTurn(
       email: null,
       preferences: {
         destination: null,
+        destinationFlexibility: 'unknown',
         budgetPerPerson: null,
         travelers: null,
         durationDays: null,
         tripStyle: null,
+        interests: [],
         isDomesticOnly: false,
         excludePackageId: null,
         requestedUncatalogedDestination: null
@@ -276,7 +334,9 @@ export function perceiveTurn(
   };
 
   let lastTripStyle: string | null = null;
+  const currentInterests: Set<string> = new Set();
   let lastDestination: string | null = null;
+  let destinationFlexibility: DestinationFlexibility = 'unknown';
   let lastBudget: number | null = null;
   let lastTravelers: number | null = null;
   let lastDuration: number | null = null;
@@ -304,46 +364,60 @@ export function perceiveTurn(
       // Style shift: reset prior constraints to avoid cross-turn contamination
       lastTripStyle = detectedStyle;
       lastDestination = null;
+      destinationFlexibility = 'unknown';
       lastBudget = null;
       lastTravelers = null;
       lastDuration = null;
+      currentInterests.clear();
       isDomesticOnly = false;
       priceObjectionActive = false;
     } else if (detectedStyle && !lastTripStyle) {
       lastTripStyle = detectedStyle;
     }
 
-    // 3. Destination extraction
+    // 3. Landscape and activity interests in this turn
+    const turnInterests = detectInterests(text);
+    for (const interest of turnInterests) {
+      currentInterests.add(interest);
+    }
+
+    // 4. Destination in this turn
     const turnDest = extractDestinationFromText(text, availableDestinations);
     if (turnDest) {
       lastDestination = turnDest;
     }
 
-    // 4. Budget extraction
+    // 5. Destination flexibility in this turn
+    const turnFlexibility = detectDestinationFlexibility(text);
+    if (turnFlexibility !== 'unknown') {
+      destinationFlexibility = turnFlexibility;
+    }
+
+    // 6. Budget extraction
     const turnBudget = extractBudgetFromText(text);
     if (turnBudget !== null) {
       lastBudget = turnBudget;
       priceObjectionActive = false; // Resolved price objection with new budget
     }
 
-    // 5. Travelers extraction
+    // 7. Travelers extraction
     const turnPax = extractTravelersFromText(text);
     if (turnPax !== null) {
       lastTravelers = turnPax;
     }
 
-    // 6. Duration extraction
+    // 8. Duration extraction
     const turnDuration = extractDurationFromText(text);
     if (turnDuration !== null) {
       lastDuration = turnDuration;
     }
 
-    // 7. Domestic flag
+    // 9. Domestic flag
     if (/\b(?:in\s+india|somewhere\s+in\s+india|domestic)\b/i.test(lower)) {
       isDomesticOnly = true;
     }
 
-    // 8. Negative preference
+    // 10. Negative preference
     const turnExcluded = detectNegativePreferences(text, packages);
     if (turnExcluded) {
       excludePackageId = turnExcluded;
@@ -355,7 +429,7 @@ export function perceiveTurn(
       }
     }
 
-    // 9. Uncataloged destination check
+    // 11. Uncataloged destination check
     if (!lastDestination) {
       const uncataloged = extractUncatalogedDestinationFromText(text, availableDestinations, packages);
       if (uncataloged) {
@@ -363,19 +437,23 @@ export function perceiveTurn(
       }
     }
 
-    // 10. Contact extraction
+    // 12. Contact extraction
     const contact = extractContactInfo(text);
     if (contact.phone) memory.customer.phone = contact.phone;
     if (contact.email) memory.customer.email = contact.email;
   }
 
+  const interestsList = Array.from(currentInterests);
+
   // Update memory customer preferences
   memory.customer.preferences = {
     destination: lastDestination,
+    destinationFlexibility,
     budgetPerPerson: lastBudget,
     travelers: lastTravelers,
     durationDays: lastDuration,
     tripStyle: lastTripStyle,
+    interests: interestsList,
     isDomesticOnly,
     excludePackageId,
     requestedUncatalogedDestination
@@ -386,7 +464,7 @@ export function perceiveTurn(
 
   // Calculate missing fields
   const missing: ('destination' | 'budget' | 'travelers' | 'duration')[] = [];
-  if (!lastDestination) missing.push('destination');
+  if (!lastDestination && destinationFlexibility !== 'yes') missing.push('destination');
   if (!lastBudget) missing.push('budget');
   if (!lastTravelers) missing.push('travelers');
   if (!lastDuration) missing.push('duration');
@@ -396,11 +474,19 @@ export function perceiveTurn(
   const bookingInfo = detectBookingIntent(latestUserText);
   const isCustomToken = detectCustomTokenAttempt(latestUserText, standardTokenAmount);
   const isUnverifiedPayment = detectUnverifiedPaymentClaim(latestUserText);
+  const isGreetingTurn = userMessages.length <= 1 && isPureGreeting(latestUserText);
+
+  if (isGreetingTurn) {
+    memory.conversation.currentIntent = 'GREETING';
+  }
 
   const perception: PerceptionResult = {
+    isGreeting: isGreetingTurn,
     detectedStyle: lastTripStyle,
+    interests: interestsList,
     isNewInquiry: isNewTripInquiry(latestUserText),
     destination: lastDestination,
+    destinationFlexibility,
     budgetPerPerson: lastBudget,
     travelers: lastTravelers,
     durationDays: lastDuration,

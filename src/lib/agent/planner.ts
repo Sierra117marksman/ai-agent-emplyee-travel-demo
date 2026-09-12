@@ -1,5 +1,5 @@
 import { AgentGoal, AgentMemory, PerceptionResult, AgentAction } from './types';
-import { qualifyLeadTool } from './tools';
+import { qualifyLeadTool, SearchPackagesInput } from './tools';
 
 export interface PlanResult {
   goal: AgentGoal;
@@ -12,17 +12,17 @@ export async function planNextAction(
   memory: AgentMemory,
   totalMessagesCount: number
 ): Promise<PlanResult> {
-  // Scenario 0: Initial greeting
-  if (totalMessagesCount === 0) {
+  // Scenario 0: Initial greeting or pure greeting message
+  if (totalMessagesCount === 0 || perception.isGreeting) {
     return {
       goal: 'GREET',
       action: {
         toolName: 'qualify_lead',
         parameters: memory.customer.preferences,
-        reasoning: 'Initial customer greeting and discovery',
+        reasoning: 'Customer opened conversation with greeting; provide warm concierge welcome without assumptions.',
         goal: 'GREET'
       },
-      notes: 'Initial turn welcome.'
+      notes: 'Greeting event.'
     };
   }
 
@@ -93,7 +93,7 @@ export async function planNextAction(
       action: {
         toolName: 'qualify_lead',
         parameters: memory.customer.preferences,
-        reasoning: 'Missing core qualification parameters (destination and budget missing).',
+        reasoning: 'Missing core qualification parameters (e.g. destination and budget missing).',
         goal: 'QUALIFY_LEAD'
       },
       notes: 'Customer not yet qualified to receive package recommendations.'
@@ -118,20 +118,24 @@ export async function planNextAction(
   }
 
   // Scenario 7: Fully qualified -> Search & Recommend Packages
+  const searchParams: SearchPackagesInput = {
+    text: perception.latestUserText,
+    destination: memory.customer.preferences.destination,
+    destinationFlexibility: memory.customer.preferences.destinationFlexibility,
+    maxBudget: memory.customer.preferences.budgetPerPerson,
+    tripType: memory.customer.preferences.tripStyle,
+    interests: memory.customer.preferences.interests,
+    durationDays: memory.customer.preferences.durationDays,
+    isDomesticOnly: memory.customer.preferences.isDomesticOnly,
+    excludePackageId: memory.customer.preferences.excludePackageId
+  };
+
   return {
     goal: 'RECOMMEND_PACKAGES',
     action: {
       toolName: 'search_packages',
-      parameters: {
-        text: perception.latestUserText,
-        destination: memory.customer.preferences.destination,
-        maxBudget: memory.customer.preferences.budgetPerPerson,
-        tripType: memory.customer.preferences.tripStyle,
-        durationDays: memory.customer.preferences.durationDays,
-        isDomesticOnly: memory.customer.preferences.isDomesticOnly,
-        excludePackageId: memory.customer.preferences.excludePackageId
-      },
-      reasoning: 'Customer is qualified; query catalog deterministically.',
+      parameters: searchParams,
+      reasoning: 'Customer is qualified; query catalog deterministically with hard constraints.',
       goal: 'RECOMMEND_PACKAGES'
     },
     notes: 'Produce matching packages based on verified preferences.'

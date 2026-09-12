@@ -1,30 +1,41 @@
 import {
   TravelPackage,
   TRAVEL_PACKAGES,
-  queryCatalog
+  queryCatalogDetailed,
+  DestinationFlexibility,
+  AlternativePackage
 } from '@/lib/packages';
 import { AgentTool, CustomerPreferences } from './types';
 
 // Tool 1: search_packages
 export interface SearchPackagesInput {
   destination?: string | null;
+  destinationFlexibility?: DestinationFlexibility;
   maxBudget?: number | null;
   tripType?: string | null;
+  interests?: string[];
   durationDays?: number | null;
   isDomesticOnly?: boolean;
   excludePackageId?: string | null;
   text?: string;
 }
 
-export const searchPackagesTool: AgentTool<SearchPackagesInput, TravelPackage[]> = {
+export interface SearchPackagesResult {
+  qualifyingPackages: TravelPackage[];
+  alternativePackages: AlternativePackage[];
+}
+
+export const searchPackagesTool: AgentTool<SearchPackagesInput, SearchPackagesResult> = {
   name: 'search_packages',
-  description: 'Deterministic catalog search against verified packages by budget, destination, trip style, and duration.',
+  description: 'Deterministic catalog search enforcing hard constraints (destination, budget, domestic) and producing alternatives if needed.',
   execute: async (input) => {
-    return queryCatalog({
+    return queryCatalogDetailed({
       text: input.text,
       destination: input.destination || undefined,
+      destinationFlexibility: input.destinationFlexibility,
       maxBudget: input.maxBudget || undefined,
       tripType: input.tripType || undefined,
+      interests: input.interests,
       durationDays: input.durationDays || undefined,
       isDomesticOnly: input.isDomesticOnly || false,
       excludePackageId: input.excludePackageId || undefined
@@ -53,26 +64,38 @@ export const qualifyLeadTool: AgentTool<CustomerPreferences, QualifyLeadResult> 
   description: 'Enforce minimum qualification gates before recommendations are generated.',
   execute: async (pref, memory) => {
     const missing: ('destination' | 'budget' | 'travelers' | 'duration')[] = [];
-    if (!pref.destination) missing.push('destination');
+    if (!pref.destination && pref.destinationFlexibility !== 'yes') missing.push('destination');
     if (!pref.budgetPerPerson) missing.push('budget');
     if (!pref.travelers) missing.push('travelers');
     if (!pref.durationDays) missing.push('duration');
 
+    // If pure greeting, definitely not qualified for recommendations
+    if (memory.conversation.currentIntent === 'GREETING') {
+      return {
+        isQualified: false,
+        missingFields: missing,
+        promptQuestions: ['Where are you thinking of traveling, or what kind of trip are you dreaming of?']
+      };
+    }
+
     // Minimum qualification gate:
     // Recommendation generation is permitted ONLY when the minimum required qualification state is satisfied.
-    // E.g. "I want a honeymoon trip." has tripStyle='honeymoon', but destination=null and budget=null -> isQualified=false.
+    // E.g. "I want a honeymoon trip." (style only, no dest, no budget) -> false
+    // E.g. "I want to see mountains." (interest only, no dest, no budget) -> false
+    // E.g. "Kashmir 15000 per person and 2 person" (dest + budget + pax) -> true
+    // E.g. "I don't care where, I just want mountains under ₹15k" (flexible dest + interest + budget) -> true
     const hasSufficientQualification = Boolean(
       (pref.destination && pref.budgetPerPerson) ||
       (pref.destination && (pref.travelers || pref.durationDays || pref.tripStyle)) ||
-      (pref.budgetPerPerson && (pref.destination || pref.tripStyle || pref.travelers || pref.durationDays))
+      (pref.budgetPerPerson && (pref.destination || pref.tripStyle || pref.travelers || pref.durationDays || pref.interests.length > 0 || pref.destinationFlexibility === 'yes'))
     );
 
     const questions: string[] = [];
-    if (!pref.destination) {
-      questions.push('Do you have a preferred destination in mind, or are you open to domestic and international options?');
+    if (!pref.destination && pref.destinationFlexibility !== 'yes') {
+      questions.push('Do you have a preferred destination in mind, or are you open to exploring domestic and international journeys?');
     }
     if (!pref.budgetPerPerson) {
-      questions.push('What is your approximate budget per person for this trip?');
+      questions.push('What is your approximate budget per person for this journey?');
     }
     if (!pref.travelers) {
       questions.push('How many travelers will be journeying with you?');

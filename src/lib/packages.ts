@@ -259,93 +259,177 @@ export function getPackageById(id: string): TravelPackage | undefined {
   return TRAVEL_PACKAGES.find((pkg) => pkg.id === id);
 }
 
+export type DestinationFlexibility = 'unknown' | 'yes' | 'no';
+
 export interface CatalogSearchQuery {
   text?: string;
   destination?: string;
+  destinationFlexibility?: DestinationFlexibility;
   maxBudget?: number;
   tripType?: string;
+  interests?: string[];
   durationDays?: number;
   isDomesticOnly?: boolean;
   excludePackageId?: string;
 }
 
+export interface AlternativePackage {
+  pkg: TravelPackage;
+  reason: string;
+}
+
+export interface CatalogSearchResult {
+  qualifyingPackages: TravelPackage[];
+  alternativePackages: AlternativePackage[];
+}
+
 /**
- * Pure Data-Driven Catalog Filtering & Scoring Engine.
- * Does NOT hardcode any destinations. Evaluates matches strictly against
- * the current packages in the catalog.
+ * =========================================================================
+ * QUALIFYING PACKAGE INVARIANT
+ * 
+ * A package may appear in `qualifyingPackages` ONLY if it satisfies
+ * EVERY active hard constraint:
+ * 1. Destination constraint (when destination is specified and destinationFlexibility !== 'yes')
+ * 2. Budget constraint (pkg.pricePerPerson <= query.maxBudget)
+ * 3. Domestic India constraint (if isDomesticOnly === true)
+ * 4. Package exclusion constraint (if excludePackageId is present)
+ * 
+ * The LLM cannot override, weaken, reinterpret, or bypass these constraints.
+ * If zero packages satisfy the constraints:
+ *   qualifyingPackages = []
+ * 
+ * No package may be promoted from `alternativePackages` into
+ * `qualifyingPackages` by response synthesis.
+ * =========================================================================
  */
-export function queryCatalog(query: CatalogSearchQuery): TravelPackage[] {
-  const scored: Array<{ pkg: TravelPackage; score: number }> = [];
+export function queryCatalogDetailed(query: CatalogSearchQuery): CatalogSearchResult {
+  const qualifying: Array<{ pkg: TravelPackage; score: number }> = [];
+  const alternatives: AlternativePackage[] = [];
 
   const textTerms = (query.text || '').toLowerCase().split(/\s+/).filter(Boolean);
   const destTerm = (query.destination || '').toLowerCase().trim();
   const tripTypeTerm = (query.tripType || '').toLowerCase().trim();
+  const isDestHard = Boolean(destTerm && query.destinationFlexibility !== 'yes');
+  const interests = (query.interests || []).map((i) => i.toLowerCase().trim());
 
   for (const pkg of TRAVEL_PACKAGES) {
+    // Hard Constraint 1: Explicit package exclusion
     if (query.excludePackageId && pkg.id === query.excludePackageId) {
       continue;
     }
 
+    // Hard Constraint 2: Domestic India only
     if (query.isDomesticOnly && !pkg.isDomesticIndia) {
       continue;
     }
 
-    let score = 0;
+    const matchesDestination =
+      !destTerm ||
+      pkg.destination.toLowerCase().includes(destTerm) ||
+      pkg.country.toLowerCase().includes(destTerm);
 
-    // 1. Destination match
-    if (destTerm) {
-      if (pkg.destination.toLowerCase().includes(destTerm) || pkg.country.toLowerCase().includes(destTerm)) {
-        score += 50;
-      }
+    const matchesBudget =
+      !query.maxBudget ||
+      pkg.pricePerPerson <= query.maxBudget;
+
+    // Evaluate Hard Constraints for Qualifying Packages
+    if (isDestHard && !matchesDestination) {
+      // Hard destination violation: disqualified from qualifyingPackages
+      continue;
     }
 
-    // 2. Trip type / category match
+    if (!matchesBudget) {
+      // Hard budget violation: disqualified from qualifyingPackages
+      // If it matched destination, record as an over-budget alternative!
+      if (matchesDestination && query.maxBudget) {
+        alternatives.push({
+          pkg,
+          reason: `₹${pkg.pricePerPerson.toLocaleString('en-IN')} exceeds customer's ₹${query.maxBudget.toLocaleString('en-IN')} budget`
+        });
+      }
+      continue;
+    }
+
+    // If we reach here, ALL hard constraints are satisfied!
+    let score = 10; // Baseline for satisfying all hard constraints
+
+    // Soft Scoring Factor: Destination match (when destination was flexible)
+    if (destTerm && matchesDestination) {
+      score += 40;
+    }
+
+    // Soft Scoring Factor: Trip type match
     if (tripTypeTerm) {
-      if (pkg.category.toLowerCase().includes(tripTypeTerm) || pkg.suitableFor.some((s) => s.toLowerCase().includes(tripTypeTerm))) {
+      if (
+        pkg.category.toLowerCase().includes(tripTypeTerm) ||
+        pkg.suitableFor.some((s) => s.toLowerCase().includes(tripTypeTerm))
+      ) {
         score += 30;
       }
     }
 
-    // 3. Free text term matches
+    // Soft Scoring Factor: Interests match (e.g. 'mountains', 'beaches')
+    for (const interest of interests) {
+      if (
+        pkg.interests.some((i) => i.toLowerCase().includes(interest)) ||
+        pkg.description.toLowerCase().includes(interest) ||
+        pkg.highlights.some((h) => h.toLowerCase().includes(interest))
+      ) {
+        score += 25;
+      }
+    }
+
+    // Soft Scoring Factor: Free text match
     for (const term of textTerms) {
       if (pkg.destination.toLowerCase().includes(term) || pkg.country.toLowerCase().includes(term)) {
-        score += 25;
-      } else if (pkg.name.toLowerCase().includes(term)) {
         score += 20;
-      } else if (pkg.category.toLowerCase().includes(term)) {
+      } else if (pkg.name.toLowerCase().includes(term)) {
         score += 15;
       } else if (pkg.interests.some((i) => i.toLowerCase().includes(term))) {
-        score += 15;
+        score += 10;
       } else if (pkg.description.toLowerCase().includes(term)) {
         score += 5;
       }
     }
 
-    // 4. Budget constraints
-    if (query.maxBudget) {
-      if (pkg.pricePerPerson <= query.maxBudget) {
-        score += 20;
-      } else if (pkg.pricePerPerson <= query.maxBudget * 1.15) {
-        // Within 15% margin
-        score += 5;
-      } else {
-        // Significantly over budget: heavily penalize unless explicitly requested by destination
-        score -= 30;
-      }
-    }
-
-    // 5. Duration match
+    // Soft Scoring Factor: Duration match
     if (query.durationDays && Math.abs(pkg.days - query.durationDays) <= 1) {
       score += 10;
     }
 
-    if (score > 0) {
-      scored.push({ pkg, score });
+    qualifying.push({ pkg, score });
+  }
+
+  // Sort qualifying packages by score descending
+  qualifying.sort((a, b) => b.score - a.score);
+  const qualifyingPackages = qualifying.map((q) => q.pkg);
+
+  // If qualifying packages are empty, populate alternative suggestions with clear reasons
+  if (qualifyingPackages.length === 0 && alternatives.length === 0) {
+    for (const pkg of TRAVEL_PACKAGES) {
+      if (query.excludePackageId && pkg.id === query.excludePackageId) continue;
+      if (query.isDomesticOnly && !pkg.isDomesticIndia) continue;
+
+      if (query.maxBudget && pkg.pricePerPerson > query.maxBudget) {
+        alternatives.push({
+          pkg,
+          reason: `Starting rate of ₹${pkg.pricePerPerson.toLocaleString('en-IN')} exceeds ₹${query.maxBudget.toLocaleString('en-IN')} budget`
+        });
+      }
     }
   }
 
-  scored.sort((a, b) => b.score - a.score);
-  return scored.map((s) => s.pkg);
+  // Sort alternatives by price ascending (closest to budget first)
+  alternatives.sort((a, b) => a.pkg.pricePerPerson - b.pkg.pricePerPerson);
+
+  return {
+    qualifyingPackages,
+    alternativePackages: alternatives
+  };
+}
+
+export function queryCatalog(query: CatalogSearchQuery): TravelPackage[] {
+  return queryCatalogDetailed(query).qualifyingPackages;
 }
 
 export function searchPackages(query: string, maxBudget?: number): TravelPackage[] {
