@@ -390,7 +390,8 @@ export function queryCatalogDetailed(query: CatalogSearchQuery): CatalogSearchRe
     if (tripTypeTerm) {
       if (
         pkg.category.toLowerCase().includes(tripTypeTerm) ||
-        pkg.suitableFor.some((s) => s.toLowerCase().includes(tripTypeTerm))
+        pkg.suitableFor.some((s) => s.toLowerCase().includes(tripTypeTerm)) ||
+        (tripTypeTerm === 'romantic' && (pkg.category === 'honeymoon' || pkg.suitableFor.includes('couples') || pkg.suitableFor.includes('honeymooners') || pkg.name.toLowerCase().includes('romantic')))
       ) {
         score += 30;
       }

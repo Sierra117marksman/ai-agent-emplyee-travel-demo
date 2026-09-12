@@ -2,8 +2,11 @@ import crypto from 'crypto';
 import Razorpay from 'razorpay';
 
 function getRazorpayCredentials() {
-  const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const rawKeyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const rawKeySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  const keyId = rawKeyId ? rawKeyId.trim() : undefined;
+  const keySecret = rawKeySecret ? rawKeySecret.trim() : undefined;
 
   if (!keyId || !keySecret) {
     throw new Error('Razorpay credentials missing on server. Check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.');

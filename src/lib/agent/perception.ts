@@ -79,7 +79,8 @@ export function isHumanHandoffRequest(text: string): boolean {
 // =========================================================================
 export function detectTripStyle(text: string): string | null {
   const lower = text.toLowerCase();
-  if (/\b(?:honeymoon|romantic|couples?)\b/i.test(lower)) return 'honeymoon';
+  if (/\bhoneymoon\b/i.test(lower)) return 'honeymoon';
+  if (/\b(?:romantic|couples?)\b/i.test(lower)) return 'romantic';
   if (/\b(?:adventure|snorkeling|scuba|rafting)\b/i.test(lower)) return 'adventure';
   if (/\b(?:family|kids|children)\b/i.test(lower)) return 'family';
   if (/\b(?:luxury|5-star|ultra luxury|boutique villa)\b/i.test(lower)) return 'luxury';

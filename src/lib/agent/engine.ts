@@ -537,6 +537,7 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     if (prefs.tripStyle) knownList.push(`Trip Style: ${prefs.tripStyle}`);
     if (hasInterests) knownList.push(`Interests: ${prefs.interests.join(', ')}`);
 
+    const isFirstTurn = messages.length <= 1;
     const askMissingPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
 The traveler is inquiring about travel, and you need to collect the remaining qualification details.
 
@@ -548,6 +549,11 @@ ${missingQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n')}
 
 CRITICAL RULES:
 - Warmly acknowledge what the traveler just stated (e.g. if they stated a destination or traveler count, acknowledge it warmly).
+${
+  isFirstTurn
+    ? '- You may begin with "Namaste! 🙏" as an initial welcoming greeting.'
+    : '- DO NOT start with "Namaste! 🙏" or formal opening greetings. The conversation is already underway, so transition naturally and directly into acknowledging their preferences.'
+}
 - Inquire ONLY about the remaining missing questions listed above. DO NOT ask for details that are already known.
 - DO NOT assume any destination, budget, or travelers that were not stated.
 - DO NOT recommend or list catalog packages until qualified (suggestedPackages = []).
@@ -565,19 +571,26 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     ) {
       fallbackPrompt = `Namaste! 🙏 ${config.companyName} is a premier bespoke travel atelier. We craft ultra-luxury private villa escapes, mountain retreats, and cultural journeys with dedicated chauffeurs, 5-star boutique stays, and VIP concierge access. Our official 2026 portfolio features hand-crafted journeys across ${availableDestinations.join(', ')}. How may I assist with your travel dreams today?`;
     } else {
+      const greetingPrefix = isFirstTurn ? 'Namaste! 🙏 ' : '';
       let preamble = '';
       if (prefs.destination && prefs.travelers) {
-        preamble = `Namaste! 🙏 A wonderful journey for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`} to ${prefs.destination}! To help our travel designers curate the perfect itinerary for you:`;
+        preamble = `${greetingPrefix}A wonderful journey for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`} to ${prefs.destination}! To help our travel designers curate the perfect itinerary for you:`;
       } else if (prefs.destination) {
-        preamble = `Namaste! 🙏 ${prefs.destination} is a fantastic choice${hasInterests ? ` for experiencing ${interestStr}` : ''}! To help our travel designers curate the ideal itinerary for you from our official portfolio:`;
+        preamble = `${greetingPrefix}${prefs.destination} is a fantastic choice${hasInterests ? ` for experiencing ${interestStr}` : ''}! To help our travel designers curate the ideal itinerary for you from our official portfolio:`;
       } else if (prefs.travelers) {
-        preamble = `Namaste! 🙏 A wonderful trip for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`}${hasInterests ? ` to experience ${interestStr}` : ''}! To help our travel designers curate the perfect experience for you:`;
+        preamble = `${greetingPrefix}A wonderful trip for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`}${hasInterests ? ` to experience ${interestStr}` : ''}! To help our travel designers curate the perfect experience for you:`;
       } else if (hasInterests) {
-        preamble = `Namaste! 🙏 Experiencing ${interestStr} is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
+        preamble = `${greetingPrefix}Experiencing ${interestStr} is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
       } else if (styleStr) {
-        preamble = `Namaste! 🙏 A ${styleStr} getaway is a wonderful journey. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
+        const stylePhrasing =
+          styleStr === 'romantic'
+            ? 'A romantic escape'
+            : styleStr === 'honeymoon'
+            ? 'A honeymoon getaway'
+            : `A ${styleStr} getaway`;
+        preamble = `${greetingPrefix}${stylePhrasing} is a wonderful journey. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
       } else {
-        preamble = `Namaste! 🙏 To help our travel designers curate the ideal itinerary for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
+        preamble = `${greetingPrefix}To help our travel designers curate the ideal itinerary for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
       }
 
       const formattedQuestions = missingQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n');
@@ -627,15 +640,31 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     const budget = memory.customer.preferences.budgetPerPerson;
     const budgetStr = budget ? `₹${budget.toLocaleString('en-IN')}` : '';
 
+    const minCatalogPackage = TRAVEL_PACKAGES.reduce(
+      (min, p) => (p.pricePerPerson < min.pricePerPerson ? p : min),
+      TRAVEL_PACKAGES[0]
+    );
+    const minimumCatalogPrice = minCatalogPackage.pricePerPerson;
+    const minCatalogPriceStr = `₹${minimumCatalogPrice.toLocaleString('en-IN')}`;
+
     let explanationMessage = '';
     if (dest && budget) {
       const destPkg = TRAVEL_PACKAGES.find(
         (p) => p.destination.toLowerCase().includes(dest.toLowerCase())
       );
-      const startingRate = destPkg ? `₹${destPkg.pricePerPerson.toLocaleString('en-IN')}` : '₹38,500';
-      explanationMessage = `We do not currently have a ${dest} package within ${budgetStr} per person. Our official ${dest} journey starts at ${startingRate} per person. Would you like to consider expanding your budget for ${dest}, or should we explore other beautiful destinations within ${budgetStr}?`;
+      const startingRate = destPkg ? `₹${destPkg.pricePerPerson.toLocaleString('en-IN')}` : minCatalogPriceStr;
+
+      if (budget < minimumCatalogPrice) {
+        explanationMessage = `We do not currently have a ${dest} package within ${budgetStr} per person. Our official ${dest} journey starts at ${startingRate} per person, and our curated portfolio journeys begin at ${minCatalogPriceStr} per person (${minCatalogPackage.name}). A budget of ${budgetStr} is below our catalog tier. Would you like to consider our ${minCatalogPackage.name} journey at ${minCatalogPriceStr}, or would you prefer to speak with our bespoke concierge desk?`;
+      } else {
+        explanationMessage = `We do not currently have a ${dest} package within ${budgetStr} per person. Our official ${dest} journey starts at ${startingRate} per person. Would you like to consider expanding your budget for ${dest}, or should we explore other beautiful destinations within ${budgetStr}?`;
+      }
     } else if (budget) {
-      explanationMessage = `We do not currently have travel packages within ${budgetStr} per person. Our official curated journeys begin at ₹29,999 per person for Kerala Backwaters. Would you like to adjust your budget, or connect with our concierge desk for tailored options?`;
+      if (budget < minimumCatalogPrice) {
+        explanationMessage = `We do not currently have travel packages within ${budgetStr} per person. Our official curated journeys begin at ${minCatalogPriceStr} per person for ${minCatalogPackage.name}. Would you like to adjust your budget, or connect with our concierge desk for tailored options?`;
+      } else {
+        explanationMessage = `We do not currently have travel packages within ${budgetStr} per person. Our official curated journeys begin at ${minCatalogPriceStr} per person for ${minCatalogPackage.name}. Would you like to adjust your budget, or explore destinations suited to ${budgetStr}?`;
+      }
     } else {
       explanationMessage = `We could not find matching itineraries in our catalog for your exact criteria. Our official destinations include: ${availableDestinations.join(', ')}. Would you like to explore alternative options?`;
     }
@@ -671,12 +700,19 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       `- [${p.id}] ${p.name} | Dest: ${p.destination} (${p.country}) | ₹${p.pricePerPerson.toLocaleString('en-IN')}/pax | ${p.duration} | Highlights: ${p.highlights[0]}`
   ).join('\n');
 
+  const isSinglePackage = topQualifying.length === 1;
   const systemPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
 PERSONALITY & STANDARDS:
 - Warm, consultative, professional Indian hospitality.
 - Never invent packages, prices, or destinations not in our official catalog.
 - If the traveler's budget is lower than all packages, honestly inform them of our starting package rates.
 - Do NOT match fixed scripts. Analyze what the traveler needs and answer dynamically.
+- Do NOT repeat "Namaste! 🙏" or formal opening greetings on subsequent conversation turns.
+${
+  isSinglePackage
+    ? '- Exactly ONE package qualifies. Present it as a singular bespoke recommendation (e.g. "here is our recommended itinerary", "This journey includes..."). NEVER refer to a single package as "both", and do NOT ask "which one would you prefer" when only 1 package is shown. Instead, ask if they would like to proceed with this journey or reserve their dates.'
+    : '- Multiple packages qualify. Present them comparatively and invite the traveler to choose which one catches their eye.'
+}
 - Mention: "You can secure your departure with a refundable ₹2,000 booking token, and our senior travel designer will contact you to finalize flights and custom details."
 - If the traveler asks to book an option (e.g., "Can I book the second option?", "let's book option 2"): Confirm their choice warmly, ask for their name and mobile number, and invite them to click "Pay ₹2,000 Booking Token".
 - Keep your response to 2-3 focused paragraphs.
@@ -713,7 +749,11 @@ CURRENT CUSTOMER REQUIREMENTS (EXTRACTED):
         )
         .join('\n\n');
 
-      assistantText = `Based on your preferences, here are our recommended itineraries from our catalog:\n\n${listText}\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?`;
+      if (topQualifying.length === 1) {
+        assistantText = `Based on your preferences, here is our recommended itinerary from our catalog:\n\n${listText}\n\nThis journey includes private luxury accommodations, dedicated chauffeur transfers, and bespoke concierge access. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior travel designer will contact you to finalize flights and custom details. Would you like to proceed with this journey?`;
+      } else {
+        assistantText = `Based on your preferences, here are our recommended itineraries from our catalog:\n\n${listText}\n\nAll itineraries include private luxury accommodations, dedicated chauffeur transfers, and bespoke concierge access. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior travel designer will contact you to finalize flights and custom details. Which one would you prefer?`;
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLeadById, saveLead } from '@/lib/crm';
+import { getLeadById, saveLead, recordPaymentAudit } from '@/lib/crm';
 import { verifyRazorpaySignature } from '@/lib/razorpay';
 
 export async function POST(request: Request) {
@@ -17,31 +17,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const lead = getLeadById(leadId);
-    if (!lead) {
-      return NextResponse.json(
-        { success: false, error: 'Referenced CRM lead not found' },
-        { status: 404 }
-      );
-    }
-
-    // Idempotency: Check if already verified
-    if (lead.status === 'BOOKING_CONFIRMED' && lead.razorpayPaymentId === paymentId) {
-      return NextResponse.json({
-        success: true,
-        status: 'BOOKING_CONFIRMED',
-        message: 'Payment was previously verified and confirmed',
-        lead
-      });
-    }
-
-    // Cryptographic HMAC-SHA256 Signature Verification
+    // 1. Cryptographic HMAC-SHA256 Signature Verification
     const isValidSignature = verifyRazorpaySignature(orderId, paymentId, signature);
 
     if (!isValidSignature) {
-      lead.status = 'PAYMENT_FAILED';
-      lead.updatedAt = new Date().toISOString();
-      saveLead(lead);
+      const existingLead = getLeadById(leadId);
+      if (existingLead) {
+        existingLead.status = 'PAYMENT_FAILED';
+        existingLead.updatedAt = new Date().toISOString();
+        saveLead(existingLead);
+      }
 
       return NextResponse.json(
         {
@@ -53,7 +38,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // Signature is cryptographically authentic -> Transition state to BOOKING_CONFIRMED
+    // 2. Signature is cryptographically authentic -> Look up existing lead
+    const lead = getLeadById(leadId);
+
+    // Integrity Rule: NEVER manufacture an unknown confirmed lead out of thin air.
+    // Record payment for reconciliation and return structured status.
+    if (!lead) {
+      recordPaymentAudit({
+        orderId,
+        paymentId,
+        leadId,
+        signature,
+        status: 'PAYMENT_VERIFIED_BUT_LEAD_MISSING',
+        recordedAt: new Date().toISOString()
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Payment verified cryptographically, but original booking lead is missing. Flagged for manual reconciliation.',
+          code: 'PAYMENT_VERIFIED_BUT_LEAD_MISSING'
+        },
+        { status: 422 }
+      );
+    }
+
+    // 3. Verify order ID matches if recorded on lead
+    if (lead.razorpayOrderId && lead.razorpayOrderId !== orderId) {
+      return NextResponse.json(
+        { success: false, error: 'Order ID mismatch between payment payload and CRM lead record.' },
+        { status: 400 }
+      );
+    }
+
+    // 4. Idempotency: Check if already verified
+    if (lead.status === 'BOOKING_CONFIRMED' && lead.razorpayPaymentId === paymentId) {
+      return NextResponse.json({
+        success: true,
+        status: 'BOOKING_CONFIRMED',
+        message: 'Payment was previously verified and confirmed',
+        lead
+      });
+    }
+
+    // 5. Authentic and validated -> Transition state to BOOKING_CONFIRMED
     lead.status = 'BOOKING_CONFIRMED';
     lead.razorpayPaymentId = paymentId;
     lead.razorpayOrderId = orderId;
