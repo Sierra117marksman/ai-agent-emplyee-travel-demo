@@ -1,5 +1,89 @@
 [
   {
+    "id": "lead_1789197157789_kv07a",
+    "customerName": "Prospective Traveler",
+    "customerPhone": "",
+    "customerEmail": "",
+    "destination": "Bali",
+    "travelDates": "Flexible",
+    "travelers": 0,
+    "budgetPerPerson": 30000,
+    "tripStyle": "honeymoon",
+    "tokenAmount": 0,
+    "currency": "INR",
+    "status": "QUALIFIED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun Patel, your Senior Travel Sales Specialist & Concierge. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "romantic",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 A honeymoon getaway is a wonderful journey. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Bali",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here are our recommended itineraries from our catalog:\n\n• **Bali Romantic Villa Escape** (5 Days / 4 Nights — ₹44,999/person)\n  *Designed for couples, blending the mist-shrouded jungle serenity of Ubud with vibrant beachfront sunsets in Seminyak.*\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "but i had 40k in mind",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "We do not currently have a Bali package within ₹40,000 per person. Our official Bali journey starts at ₹44,999 per person. Would you like to consider expanding your budget for Bali, or should we explore other beautiful destinations within ₹40,000?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "what is other option with 40k?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here are our recommended itineraries from our catalog:\n\n• **Kashmir Valley & Houseboat Bliss** (6 Days / 5 Nights — ₹38,500/person)\n  *Snow-capped Himalayan peaks, fragrant pine meadows, Gulmarg alpine gondolas, and timeless Dal Lake romance.*\n\n• **Kerala Backwaters & Munnar Mist** (5 Days / 4 Nights — ₹29,999/person)\n  *Rolling tea estates, cool hill station breezes, tranquil palm backwaters, and Ayurvedic wellness.*\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "10k?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "We do not currently have a Bali package within ₹10,000 per person. Our official Bali journey starts at ₹44,999 per person. Would you like to consider expanding your budget for Bali, or should we explore other beautiful destinations within ₹10,000?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "30k?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here are our recommended itineraries from our catalog:\n\n• **Kerala Backwaters & Munnar Mist** (5 Days / 4 Nights — ₹29,999/person)\n  *Rolling tea estates, cool hill station breezes, tranquil palm backwaters, and Ayurvedic wellness.*\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?",
+        "timestamp": "Just now"
+      }
+    ],
+    "createdAt": "2026-09-12T07:14:04.911Z",
+    "updatedAt": "2026-09-12T07:14:04.912Z"
+  },
+  {
     "id": "lead_1789197016638_eotg3",
     "customerName": "Autonomous Test Lead",
     "customerPhone": "+91 98765 00000",
