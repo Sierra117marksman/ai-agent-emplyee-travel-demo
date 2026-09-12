@@ -27,7 +27,8 @@ interface CustomerState {
 
 function extractCustomerState(messages: ChatMessage[]): CustomerState {
   const state: CustomerState = {};
-  const fullText = messages.map((m) => m.content).join(' ');
+  const userMessages = messages.filter((m) => m.role === 'user');
+  const fullText = userMessages.map((m) => m.content).join(' ');
   const lower = fullText.toLowerCase();
 
   // 1. Budget extraction (handles 35k, 50k, 80,000, ₹35,000, rs 60k, around 50,000)
@@ -97,22 +98,37 @@ function extractCustomerState(messages: ChatMessage[]): CustomerState {
     }
   }
 
-  // 7. Check for uncataloged destination inquiry (e.g. "Mars", "Paris", "Antarctica")
-  const destRegex = /(?:visit|trip to|travel to|packages?\s+(?:for|to|in|of)|going to|holiday in|in|to)\s+([a-zA-Z]{3,20})/i;
+  // 7. Check for uncataloged destination inquiry (e.g. "Mars", "Tokyo", "Antarctica")
+  const destRegex = /(?:visit(?:ing)?|trip\s+to|travel(?:ing)?\s+to|packages?\s+(?:for|to|in|of)|holiday\s+in|vacation\s+(?:in|to)|tours?\s+(?:in|of|to)|flights?\s+to|going\s+to)\s+([a-zA-Z]{3,20})/i;
   const matchDest = lower.match(destRegex);
   if (matchDest && !state.destination) {
-    const candidate = matchDest[1].trim();
-    const commonStopwords = [
-      'honeymoon', 'family', 'budget', 'couple', 'adventure', 'somewhere',
-      'december', 'january', 'summer', 'winter', 'next', 'trip', 'place',
-      'anywhere', 'india', 'option', 'package', 'itinerary', 'person', 'people', 'days', 'nights'
-    ];
+    const candidate = matchDest[1].trim().toLowerCase();
+    const commonStopwords = new Set([
+      'wanderlust', 'journeys', 'wanderlustjourneys', 'arjun', 'patel',
+      'agency', 'company', 'concierge', 'advisor', 'team', 'service', 'website',
+      'honeymoon', 'family', 'budget', 'couple', 'adventure', 'luxury', 'relaxed',
+      'vacation', 'holiday', 'trip', 'travel', 'tour', 'journey', 'destination',
+      'place', 'location', 'spot', 'package', 'packages', 'itinerary', 'itineraries',
+      'option', 'options', 'deal', 'deals', 'offer', 'resort', 'hotel', 'villa',
+      'flight', 'flights', 'booking', 'reservation', 'token', 'payment', 'money',
+      'pax', 'person', 'people', 'adult', 'adults', 'child', 'children', 'kid', 'kids',
+      'somewhere', 'anywhere', 'nowhere', 'everywhere', 'here', 'there',
+      'india', 'domestic', 'international', 'abroad', 'overseas',
+      'january', 'february', 'march', 'april', 'may', 'june', 'july',
+      'august', 'september', 'october', 'november', 'december',
+      'summer', 'winter', 'spring', 'autumn', 'monsoon',
+      'month', 'months', 'year', 'years', 'week', 'weeks', 'day', 'days', 'night', 'nights',
+      'next', 'upcoming', 'future', 'soon', 'today', 'tomorrow', 'tonight',
+      'know', 'see', 'book', 'plan', 'explore', 'help', 'find', 'get', 'make', 'check', 'take',
+      'mind', 'advance', 'detail', 'details', 'someone', 'anyone', 'something', 'anything',
+      'what', 'which', 'where', 'when', 'who', 'how', 'why', 'this', 'that', 'them', 'these', 'those'
+    ]);
     const isKnownCountryOrDest = TRAVEL_PACKAGES.some(
       (p) =>
-        p.country.toLowerCase() === candidate.toLowerCase() ||
-        p.destination.toLowerCase().includes(candidate.toLowerCase())
+        p.country.toLowerCase() === candidate ||
+        p.destination.toLowerCase().includes(candidate)
     );
-    if (!commonStopwords.includes(candidate.toLowerCase()) && !isKnownCountryOrDest) {
+    if (!commonStopwords.has(candidate) && !isKnownCountryOrDest) {
       state.requestedUncatalogedDestination = candidate.charAt(0).toUpperCase() + candidate.slice(1);
     }
   }
@@ -263,23 +279,29 @@ export async function POST(request: Request) {
     if (!hasSufficientQualification) {
       const styleWord = state.tripStyle ? ` ${state.tripStyle}` : '';
       const askMissingPrompt = `You are Arjun Patel, Senior Travel Sales Specialist at Wanderlust Journeys.
-The traveler has expressed interest in a${styleWord} journey, but has not shared their destination preference, budget per person, number of travelers, or duration.
-CRITICAL RULES:
-- DO NOT assume any destination (do NOT assume Bali, Kashmir, or any other place).
-- DO NOT assume any budget (do NOT assume ₹44,999 or ₹45,000).
-- DO NOT assume 2 travelers.
-- Warmly acknowledge their interest in a${styleWord} getaway.
-- Ask for their missing details:
+The traveler has contacted you.
+- If they are inquiring about Wanderlust Journeys, introduce Wanderlust Journeys warmly as a premier luxury travel atelier curating private villa escapes, mountain sanctuaries, and bespoke journeys across: ${availableDestinations.join(', ')}.
+- If they are exploring a journey, warmly acknowledge their interest (e.g. in a${styleWord} getaway).
+- Inquire about their missing preferences:
   1. Preferred destination or region (or whether they prefer domestic India or international)
   2. Approximate budget per person
   3. Number of travelers and trip duration
+CRITICAL RULES:
+- DO NOT assume any destination (do NOT assume Bali or Kashmir).
+- DO NOT assume any budget (do NOT assume ₹44,999 or ₹45,000).
+- DO NOT assume 2 travelers.
+- NEVER claim that Wanderlust is an uncataloged destination (Wanderlust Journeys is your agency!).
 Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
 
       const assistantReply = await queryGroq(askMissingPrompt, messages);
-      const fallbackPrompt = `Namaste! A${styleWord} getaway is a truly wonderful milestone. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:
+      let fallbackPrompt = `Namaste! 🙏 A${styleWord} getaway is a truly wonderful milestone. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:
 1. Do you have a preferred destination in mind, or are you open to domestic and international journeys?
 2. What is your approximate budget per person?
 3. How many travelers will be joining and for how many days?`;
+
+      if (latestLower.includes('wanderlust') || latestLower.includes('who are you') || latestLower.includes('about you') || latestLower.includes('company')) {
+        fallbackPrompt = `Namaste! 🙏 Wanderlust Journeys is a premier bespoke travel atelier. We craft ultra-luxury private villa escapes, mountain retreats, and cultural journeys with dedicated chauffeurs, 5-star boutique stays, and VIP concierge access. Our official 2026 portfolio features hand-crafted journeys across ${availableDestinations.join(', ')}. How may I assist with your travel dreams today?`;
+      }
 
       return NextResponse.json({
         success: true,
