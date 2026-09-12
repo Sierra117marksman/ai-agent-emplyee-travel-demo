@@ -65,6 +65,39 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ---
 
+## 🌐 Deploy to Render (render.com)
+
+This repository includes a [`render.yaml`](./render.yaml) blueprint for one-click or automated deployment on [Render](https://render.com).
+
+### Option 1: Render Blueprint (Recommended)
+1. Go to [Render Dashboard](https://dashboard.render.com/) → **Blueprints** → **New Blueprint Instance**.
+2. Connect this repository (`Sierra117marksman/ai-agent-emplyee-travel-demo`).
+3. Render will automatically detect `render.yaml` and configure the service.
+4. Fill in the required secret environment variables (e.g. `GROQ_API_KEY`, `RAZORPAY_KEY_SECRET`).
+5. Click **Apply**.
+
+### Option 2: Manual Web Service Setup
+If creating a standard **Web Service** manually on Render:
+- **Environment**: `Node`
+- **Region**: Any (e.g., `Oregon (US West)` or `Singapore`)
+- **Branch**: `main`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm run start`
+- **Plan**: `Free` or `Starter`
+
+#### Environment Variables to Set on Render:
+| Variable | Value / Description |
+|---|---|
+| `NODE_VERSION` | `20` |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | `rzp_test_SdTYv7Na6NpcrC` |
+| `RAZORPAY_KEY_SECRET` | `CACsqCerPQIrB2jo5HvMjciA` |
+| `BOOKING_TOKEN_AMOUNT_INR` | `2000` |
+| `TRAVEL_SPECIALIST_PHONE` | `9999577734` |
+| `GROQ_API_KEY` | *(Your Groq API key)* |
+| `GEMINI_API_KEY` | *(Your Gemini API key)* |
+
+---
+
 ## 🧪 Automated Test Verification
 
 A complete suite of adversarial and regression tests is included in the `tests/` directory:
