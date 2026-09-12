@@ -357,40 +357,40 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
           type="button"
           onClick={onToggle}
           aria-label="Open chat with travel concierge Arjun Patel"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white shadow-2xl shadow-teal-500/40 hover:scale-105 active:scale-95 transition-all group"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2.5 sm:gap-3 px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white shadow-2xl shadow-teal-500/40 hover:scale-105 active:scale-95 transition-all group"
         >
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center border-2 border-white/40 shadow-inner">
-              <Bot className="w-6 h-6 text-teal-300" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-900 flex items-center justify-center border-2 border-white/40 shadow-inner">
+              <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-teal-300" />
             </div>
-            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 border-2 border-slate-950 rounded-full animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 bg-emerald-400 border-2 border-slate-950 rounded-full animate-pulse" />
           </div>
 
-          <div className="text-left hidden sm:block">
+          <div className="text-left">
             <div className="text-xs font-bold text-white flex items-center gap-1.5">
               <span>Arjun Patel</span>
-              <span className="text-[10px] font-normal px-1.5 py-0.2 rounded bg-teal-800/80 text-teal-200">
+              <span className="text-[9px] sm:text-[10px] font-normal px-1.5 py-0.2 rounded bg-teal-800/80 text-teal-200">
                 Online
               </span>
             </div>
-            <div className="text-[11px] text-teal-100/90 font-medium">Senior Travel Concierge</div>
+            <div className="text-[10px] sm:text-[11px] text-teal-100/90 font-medium hidden xs:block sm:block">Senior Travel Concierge</div>
           </div>
         </button>
       )}
 
-      {/* Floating Chat Drawer Window */}
+      {/* Chat Drawer Window: Native Full-screen on mobile, Floating Drawer on desktop */}
       {isOpen && (
         <div
           role="dialog"
           aria-label="Chat with Arjun Patel"
-          className="fixed bottom-4 right-4 z-50 w-full sm:w-[440px] h-[640px] max-h-[90vh] bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl shadow-black/80 flex flex-col overflow-hidden text-slate-100 animate-in fade-in slide-in-from-bottom-5 duration-200"
+          className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[440px] sm:h-[650px] sm:max-h-[90vh] z-50 bg-slate-950 border-0 sm:border border-slate-800 rounded-none sm:rounded-2xl shadow-2xl shadow-black/80 flex flex-col overflow-hidden text-slate-100 animate-in fade-in duration-200"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-teal-900 via-slate-900 to-emerald-950 px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-teal-900 via-slate-900 to-emerald-950 px-4 sm:px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 sm:py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-11 h-11 rounded-full bg-slate-800 border-2 border-teal-500/50 flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-teal-300" />
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-slate-800 border-2 border-teal-500/50 flex items-center justify-center">
+                  <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-teal-300" />
                 </div>
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-slate-950 rounded-full" />
               </div>
@@ -402,7 +402,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                 <div className="text-xs text-slate-400 flex items-center gap-1">
                   <span>Senior Travel Specialist</span>
                   <span>•</span>
-                  <span className="text-teal-400 font-medium">Wanderlust Journeys</span>
+                  <span className="text-teal-400 font-medium">Wanderlust</span>
                 </div>
               </div>
             </div>
@@ -411,14 +411,14 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
               type="button"
               onClick={onToggle}
               aria-label="Close chat window"
-              className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl bg-slate-800/90 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95 cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
           {/* Sub-header safety banner */}
-          <div className="bg-slate-900/90 px-4 py-2 border-b border-slate-850 flex items-center justify-between text-[11px] text-slate-300">
+          <div className="bg-slate-900/90 px-4 py-2 border-b border-slate-850 flex items-center justify-between text-[11px] text-slate-300 shrink-0">
             <span className="flex items-center gap-1 text-teal-300 font-semibold">
               <ShieldCheck className="w-3.5 h-3.5" /> ₹2,000 Refundable Booking Token
             </span>
@@ -426,7 +426,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
           </div>
 
           {/* Message Stream */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-950/60">
+          <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-4 bg-slate-950/60">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -438,9 +438,9 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                   </div>
                 )}
 
-                <div className="max-w-[85%] space-y-3">
+                <div className="max-w-[88%] sm:max-w-[85%] space-y-3">
                   <div
-                    className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
+                    className={`p-3 sm:p-3.5 rounded-2xl text-xs sm:text-xs leading-relaxed ${
                       msg.role === 'user'
                         ? 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-tr-none shadow-md'
                         : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
@@ -478,11 +478,11 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                           <button
                             type="button"
                             onClick={() => startBookingFlow(pkg)}
-                            className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow hover:brightness-110 active:scale-98 transition-all"
+                            className="w-full py-2.5 sm:py-2 px-3 rounded-lg bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow hover:brightness-110 active:scale-98 transition-all cursor-pointer"
                           >
-                            <Lock className="w-3 h-3" />
+                            <Lock className="w-3.5 h-3.5" />
                             <span>Pay ₹2,000 Booking Token</span>
-                            <ArrowRight className="w-3 h-3" />
+                            <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))}
@@ -508,7 +508,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
 
             {/* Post-Payment Verified Receipt Card */}
             {confirmedPayment && (
-              <div className="bg-emerald-950/80 border-2 border-emerald-500/80 rounded-xl p-4 shadow-xl text-xs text-slate-200 animate-in zoom-in-95">
+              <div className="bg-emerald-950/80 border-2 border-emerald-500/80 rounded-xl p-3.5 sm:p-4 shadow-xl text-xs text-slate-200 animate-in zoom-in-95">
                 <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-2">
                   <CheckCircle2 className="w-5 h-5 fill-emerald-400 text-slate-950" />
                   <span>Booking Token Verified ✓</span>
@@ -540,38 +540,38 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick-reply chip bar */}
-          <div className="px-3 py-2 bg-slate-900/70 border-t border-slate-850 flex items-center gap-1.5 overflow-x-auto text-[11px]">
+          {/* Quick-reply chip bar with horizontal touch scroll */}
+          <div className="px-3 py-2 bg-slate-900/80 border-t border-slate-850 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs shrink-0">
             <button
               type="button"
               onClick={() => void handleSendMessage('Bali for honeymoon, budget around ₹45k per person')}
-              className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-750 text-slate-300 whitespace-nowrap"
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 whitespace-nowrap active:scale-95 shrink-0"
             >
               🏝️ Bali Honeymoon
             </button>
             <button
               type="button"
               onClick={() => void handleSendMessage('Kashmir Valley for 2 people with houseboat stay')}
-              className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-750 text-slate-300 whitespace-nowrap"
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 whitespace-nowrap active:scale-95 shrink-0"
             >
               🏔️ Kashmir Houseboat
             </button>
             <button
               type="button"
               onClick={() => void handleSendMessage('What packages do you have under ₹40,000?')}
-              className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-750 text-slate-300 whitespace-nowrap"
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 whitespace-nowrap active:scale-95 shrink-0"
             >
               💰 Under ₹40k
             </button>
           </div>
 
-          {/* Input Bar */}
+          {/* Input Bar with iOS safe area padding */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               void handleSendMessage();
             }}
-            className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2"
+            className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0"
           >
             <input
               type="text"
@@ -579,13 +579,13 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask Arjun (e.g., Bali for 2 under ₹50k)..."
               disabled={isLoading}
-              className="flex-1 bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-colors"
+              className="flex-1 bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-base sm:text-xs text-white placeholder-slate-500 outline-none transition-colors"
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
               aria-label="Send message"
-              className="w-9 h-9 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-40 text-white flex items-center justify-center transition-all shrink-0 active:scale-95"
+              className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-40 text-white flex items-center justify-center transition-all shrink-0 active:scale-95 cursor-pointer"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -595,8 +595,8 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
 
       {/* Customer Contact & Razorpay Confirmation Modal */}
       {showContactModal && activeBookingPackage && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl text-slate-100 animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-slate-950 border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl text-slate-100 animate-in slide-in-from-bottom-5 sm:zoom-in-95 max-h-[92vh] overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <span className="text-xs font-bold text-teal-400 uppercase tracking-wider">Step 1 of 2</span>
@@ -605,9 +605,10 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
               <button
                 type="button"
                 onClick={() => setShowContactModal(false)}
-                className="text-slate-400 hover:text-white"
+                aria-label="Close modal"
+                className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -633,7 +634,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Your Full Name"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none"
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-base sm:text-xs text-white placeholder-slate-500 outline-none"
                 />
               </div>
 
@@ -647,7 +648,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="+91 10-digit mobile number"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none"
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-base sm:text-xs text-white placeholder-slate-500 outline-none"
                 />
               </div>
 
@@ -660,7 +661,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
                   placeholder="yourname@example.com"
-                  className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none"
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-base sm:text-xs text-white placeholder-slate-500 outline-none"
                 />
               </div>
 
@@ -668,7 +669,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                 <button
                   type="submit"
                   disabled={isProcessingPayment}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-sm shadow-lg shadow-teal-500/25 hover:brightness-110 active:scale-98 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  className="w-full py-3.5 sm:py-3 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-sm shadow-lg shadow-teal-500/25 hover:brightness-110 active:scale-98 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isProcessingPayment ? (
                     <>

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -11,6 +11,13 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#020617',
+};
 
 export const metadata: Metadata = {
   title: 'Wanderlust Journeys | Luxury Handcrafted Escapes & Private Villas',
@@ -27,8 +34,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950`}>
-      <body className="min-h-screen flex flex-col bg-slate-950 text-slate-100">{children}</body>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 scroll-smooth`}>
+      <body className="min-h-screen flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden">{children}</body>
     </html>
   );
 }
+

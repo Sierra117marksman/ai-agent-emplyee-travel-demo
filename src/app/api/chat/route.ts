@@ -10,157 +10,268 @@ interface ChatMessage {
   content: string;
 }
 
-interface CustomerState {
-  destination?: string;
-  travelDates?: string;
-  durationDays?: number;
-  travelers?: number;
-  budgetPerPerson?: number;
-  tripStyle?: string;
-  isDomesticOnly?: boolean;
+
+export interface CustomerState {
+  destination: string | null;
+  travelDates: string | null;
+  durationDays: number | null;
+  travelers: number | null;
+  budgetPerPerson: number | null;
+  tripStyle: string | null;
+  isDomesticOnly: boolean;
   excludePackageId?: string;
-  customerName?: string;
-  customerPhone?: string;
-  customerEmail?: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
   requestedUncatalogedDestination?: string;
+  priceObjectionActive?: boolean;
 }
 
-function extractCustomerState(messages: ChatMessage[]): CustomerState {
-  const state: CustomerState = {};
-  const userMessages = messages.filter((m) => m.role === 'user');
-  const fullText = userMessages.map((m) => m.content).join(' ');
-  const lower = fullText.toLowerCase();
+// 1. Generic Price / Budget Objection detector (handles natural-language variations without hardcoded single phrases)
+export function isPriceObjection(text: string): boolean {
+  const lower = text.toLowerCase().trim();
 
-  // 1. Budget extraction (handles 35k, 50k, 80,000, ₹35,000, rs 60k, around 50,000)
-  const budgetMatch = lower.match(/(?:budget(?:\s*is|\s*of)?|around|under|approx\.?|max\.?|₹|rs\.?|inr)\s*(?:of\s*)?(?:₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*|\d{2,3})k?\b/i);
+  // Pattern A: Expressions stating price, cost, or budget is excessive / high / steep
+  const expensivePattern = /\b(?:price|prices|rate|rates|cost|costs|pricing|quote|quotes|package|packages|it|this|that|those)\s+(?:is|are|seems?|feels?|looks?|was)?\s*(?:way\s+)?(?:too\s+(?:high|much|expensive|steep|costly|pricey)|above\s+(?:my|our)\s+budget|over\s+(?:my|our)\s+budget|beyond\s+(?:my|our)\s+budget|out\s+of\s+(?:my|our)\s+(?:budget|price\s+range)|exceeds?\s+(?:my|our)\s+budget)\b/i;
+
+  // Pattern B: Standalone / modifier phrases for too expensive
+  const tooExpensivePattern = /\b(?:way\s+|a\s+bit\s+|a\s+little\s+)?too\s+(?:expensive|costly|pricey|high|steep)\b/i;
+
+  // Pattern C: Requests for cheaper or more affordable alternatives
+  const cheaperPattern = /\b(?:cheaper|cheapest|more\s+affordable|less\s+expensive|lower\s+(?:price|cost|budget|rates?)|economical|pocket[- ]friendly|budget[- ]friendly|cut\s+the\s+cost)\b/i;
+
+  // Pattern D: Affordability negative statements
+  const cannotAffordPattern = /\b(?:can't|cannot|cant|unable\s+to)\s+afford\b|\b(?:out\s+of|beyond)\s+(?:my|our)\s+(?:budget|range|reach)\b/i;
+
+  return (
+    expensivePattern.test(lower) ||
+    tooExpensivePattern.test(lower) ||
+    cheaperPattern.test(lower) ||
+    cannotAffordPattern.test(lower)
+  );
+}
+
+// 2. Generic Trip Style Detector
+function detectTripStyle(text: string): string | null {
+  const lower = text.toLowerCase();
+  if (/\b(?:honeymoon|romantic|couples?)\b/i.test(lower)) return 'honeymoon';
+  if (/\b(?:adventure|snorkeling|trek(?:king)?|scuba|rafting|hiking)\b/i.test(lower)) return 'adventure';
+  if (/\b(?:family|kids|children)\b/i.test(lower)) return 'family';
+  if (/\b(?:luxury|5-star|ultra luxury|boutique villa)\b/i.test(lower)) return 'luxury';
+  if (/\b(?:cold|snow|mountains?|himalayan|alpine)\b/i.test(lower)) return 'mountains';
+  if (/\b(?:relax(?:ed|ing)?|peaceful|ayurveda|spa|wellness)\b/i.test(lower)) return 'relaxed';
+  return null;
+}
+
+// 3. Generic New Trip Inquiry / Style Shift Detector
+function isNewTripInquiry(text: string): boolean {
+  const lower = text.toLowerCase();
+  return /\b(?:i\s+(?:want|need|would\s+like)|we(?:'re|\s+are)\s+(?:planning|looking\s+for)|looking\s+for|plan(?:ning)?\s+(?:a|an|our)|interested\s+in)\b/i.test(lower);
+}
+
+// 4. Budget Extractor from text
+function extractBudgetFromText(text: string): number | null {
+  const lower = text.toLowerCase();
+  const budgetMatch = lower.match(/(?:budget(?:\s*is|\s*of)?|around|under|approx\.?|max\.?|about|near|₹|rs\.?|inr)\s*(?:of\s*)?(?:₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*|\d{2,3})k?\b/i);
   if (budgetMatch) {
     const rawStr = budgetMatch[1].replace(/,/g, '');
     const num = parseInt(rawStr, 10);
     if (!isNaN(num)) {
       if (budgetMatch[0].toLowerCase().includes('k')) {
-        state.budgetPerPerson = num * 1000;
+        return num * 1000;
       } else if (num >= 1000) {
-        state.budgetPerPerson = num;
+        return num;
       } else if (
         budgetMatch[0].includes('₹') ||
         budgetMatch[0].toLowerCase().includes('rs') ||
         budgetMatch[0].toLowerCase().includes('inr') ||
         budgetMatch[0].toLowerCase().includes('budget')
       ) {
-        state.budgetPerPerson = num * 1000;
+        return num * 1000;
       }
     }
   }
+  return null;
+}
 
-  // 2. Travelers count (handles "4 people", "for two", "couple", "family of 5", "2 pax")
-  // NOTE: "honeymoon" must NEVER assume 2 travelers automatically
+// 5. Travelers Extractor
+function extractTravelersFromText(text: string): number | null {
+  const lower = text.toLowerCase();
   const paxNumberMatch = lower.match(/(\d+)\s*(?:people|person|pax|travellers|travelers|adults)/i);
   if (paxNumberMatch) {
-    state.travelers = parseInt(paxNumberMatch[1], 10);
-  } else if (lower.includes('for two') || lower.includes('couple') || lower.includes('2 of us') || lower.includes('two people') || lower.includes('two travelers')) {
-    state.travelers = 2;
-  } else if (lower.includes('for 4') || lower.includes('4 people') || lower.includes('four people') || lower.includes('four travelers')) {
-    state.travelers = 4;
+    return parseInt(paxNumberMatch[1], 10);
   }
+  if (/\b(?:for\s+two|couple|2\s+of\s+us|two\s+people|two\s+travelers)\b/i.test(lower)) {
+    return 2;
+  }
+  if (/\b(?:for\s+4|4\s+people|four\s+people|four\s+travelers|family\s+of\s+4)\b/i.test(lower)) {
+    return 4;
+  }
+  return null;
+}
 
-  // 3. Duration extraction (handles "5-day", "6 days", "4 nights")
+// 6. Duration Extractor
+function extractDurationFromText(text: string): number | null {
+  const lower = text.toLowerCase();
   const durationMatch = lower.match(/(\d+)\s*(?:days?|nights?|-day)/i);
   if (durationMatch) {
-    state.durationDays = parseInt(durationMatch[1], 10);
+    return parseInt(durationMatch[1], 10);
   }
+  if (/\ba\s+week\b/i.test(lower)) return 7;
+  return null;
+}
 
-  // 4. Trip Style & Interests (handles honeymoon, adventure, family, luxury, cold, nature)
-  if (lower.includes('honeymoon') || lower.includes('romantic')) {
-    state.tripStyle = 'honeymoon';
-  } else if (lower.includes('adventure') || lower.includes('snorkeling') || lower.includes('trek')) {
-    state.tripStyle = 'adventure';
-  } else if (lower.includes('family')) {
-    state.tripStyle = 'family';
-  } else if (lower.includes('luxury') || lower.includes('5-star') || lower.includes('villa')) {
-    state.tripStyle = 'luxury';
-  } else if (lower.includes('cold') || lower.includes('snow') || lower.includes('mountain')) {
-    state.tripStyle = 'mountains';
-  } else if (lower.includes('relax') || lower.includes('peaceful') || lower.includes('ayurveda')) {
-    state.tripStyle = 'relaxed';
-  }
-
-  // 5. Domestic restriction
-  if (lower.includes('in india') || lower.includes('somewhere in india') || lower.includes('domestic')) {
-    state.isDomesticOnly = true;
-  }
-
-  // 6. Dynamic destination extraction by testing all words against active catalog destinations
+// 7. Destination Extractor
+function extractDestinationFromText(text: string): string | null {
+  const lower = text.toLowerCase();
   const destinations = getAllAvailableDestinations();
   for (const dest of destinations) {
     if (lower.includes(dest.toLowerCase())) {
-      state.destination = dest;
-      break;
+      return dest;
     }
   }
+  return null;
+}
 
-  // 7. Check for uncataloged destination inquiry (e.g. "Mars", "Tokyo", "Antarctica")
-  const destRegex = /(?:visit(?:ing)?|trip\s+to|travel(?:ing)?\s+to|packages?\s+(?:for|to|in|of)|holiday\s+in|vacation\s+(?:in|to)|tours?\s+(?:in|of|to)|flights?\s+to|going\s+to)\s+([a-zA-Z]{3,20})/i;
-  const matchDest = lower.match(destRegex);
-  if (matchDest && !state.destination) {
-    const candidate = matchDest[1].trim().toLowerCase();
-    const commonStopwords = new Set([
-      'wanderlust', 'journeys', 'wanderlustjourneys', 'arjun', 'patel',
-      'agency', 'company', 'concierge', 'advisor', 'team', 'service', 'website',
-      'honeymoon', 'family', 'budget', 'couple', 'adventure', 'luxury', 'relaxed',
-      'vacation', 'holiday', 'trip', 'travel', 'tour', 'journey', 'destination',
-      'place', 'location', 'spot', 'package', 'packages', 'itinerary', 'itineraries',
-      'option', 'options', 'deal', 'deals', 'offer', 'resort', 'hotel', 'villa',
-      'flight', 'flights', 'booking', 'reservation', 'token', 'payment', 'money',
-      'pax', 'person', 'people', 'adult', 'adults', 'child', 'children', 'kid', 'kids',
-      'somewhere', 'anywhere', 'nowhere', 'everywhere', 'here', 'there',
-      'india', 'domestic', 'international', 'abroad', 'overseas',
-      'january', 'february', 'march', 'april', 'may', 'june', 'july',
-      'august', 'september', 'october', 'november', 'december',
-      'summer', 'winter', 'spring', 'autumn', 'monsoon',
-      'month', 'months', 'year', 'years', 'week', 'weeks', 'day', 'days', 'night', 'nights',
-      'next', 'upcoming', 'future', 'soon', 'today', 'tomorrow', 'tonight',
-      'know', 'see', 'book', 'plan', 'explore', 'help', 'find', 'get', 'make', 'check', 'take',
-      'mind', 'advance', 'detail', 'details', 'someone', 'anyone', 'something', 'anything',
-      'what', 'which', 'where', 'when', 'who', 'how', 'why', 'this', 'that', 'them', 'these', 'those'
-    ]);
-    const isKnownCountryOrDest = TRAVEL_PACKAGES.some(
-      (p) =>
-        p.country.toLowerCase() === candidate ||
-        p.destination.toLowerCase().includes(candidate)
-    );
-    if (!commonStopwords.has(candidate) && !isKnownCountryOrDest) {
-      state.requestedUncatalogedDestination = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+function extractCustomerState(messages: ChatMessage[]): CustomerState {
+  const state: CustomerState = {
+    destination: null,
+    travelDates: null,
+    durationDays: null,
+    travelers: null,
+    budgetPerPerson: null,
+    tripStyle: null,
+    isDomesticOnly: false,
+    priceObjectionActive: false,
+    customerName: null,
+    customerPhone: null,
+    customerEmail: null
+  };
+
+  const userMessages = messages.filter((m) => m.role === 'user');
+
+  for (const msg of userMessages) {
+    const text = msg.content;
+    const lower = text.toLowerCase();
+
+    // 1. Check for Price Objection in this turn
+    if (isPriceObjection(text)) {
+      state.priceObjectionActive = true;
+      state.budgetPerPerson = null; // Clear previously rejected budget
+      continue;
     }
-  }
 
-  // 8. Negative preference (e.g. "Forget Bali", "show me something else", "not Kashmir")
-  for (const pkg of TRAVEL_PACKAGES) {
-    const destKeywords = pkg.destination.toLowerCase().split(/[\s,&]+/);
-    for (const kw of destKeywords) {
-      if (kw.length < 3) continue;
-      if (
-        lower.includes(`forget ${kw}`) ||
-        lower.includes(`not ${kw}`) ||
-        lower.includes(`other than ${kw}`) ||
-        lower.includes(`leave ${kw}`) ||
-        lower.includes(`anything but ${kw}`)
-      ) {
-        state.excludePackageId = pkg.id;
-        if (state.destination && state.destination.toLowerCase().includes(kw)) {
-          delete state.destination;
+    // 2. Trip style & New Inquiry Check
+    const detectedStyle = detectTripStyle(text);
+    const newInquiry = isNewTripInquiry(text);
+
+    // If introducing a new style in an inquiry (or changing style), reset prior trip-specific constraints!
+    if (detectedStyle && (newInquiry || (state.tripStyle && state.tripStyle !== detectedStyle))) {
+      state.tripStyle = detectedStyle;
+      state.destination = null;
+      state.budgetPerPerson = null;
+      state.travelers = null;
+      state.durationDays = null;
+      state.isDomesticOnly = false;
+      state.priceObjectionActive = false;
+    } else if (detectedStyle && !state.tripStyle) {
+      state.tripStyle = detectedStyle;
+    }
+
+    // 3. Destination in this turn
+    const turnDest = extractDestinationFromText(text);
+    if (turnDest) {
+      state.destination = turnDest;
+    }
+
+    // 4. Budget in this turn
+    const turnBudget = extractBudgetFromText(text);
+    if (turnBudget !== null) {
+      state.budgetPerPerson = turnBudget;
+      state.priceObjectionActive = false; // Resolved price objection with new budget
+    }
+
+    // 5. Travelers in this turn
+    const turnPax = extractTravelersFromText(text);
+    if (turnPax !== null) {
+      state.travelers = turnPax;
+    }
+
+    // 6. Duration in this turn
+    const turnDuration = extractDurationFromText(text);
+    if (turnDuration !== null) {
+      state.durationDays = turnDuration;
+    }
+
+    // 7. Domestic in this turn
+    if (/\b(?:in\s+india|somewhere\s+in\s+india|domestic)\b/i.test(lower)) {
+      state.isDomesticOnly = true;
+    }
+
+    // 8. Negative preference (e.g. "Forget Bali", "not Kashmir")
+    for (const pkg of TRAVEL_PACKAGES) {
+      const destKeywords = pkg.destination.toLowerCase().split(/[\s,&]+/);
+      for (const kw of destKeywords) {
+        if (kw.length < 3) continue;
+        if (
+          lower.includes(`forget ${kw}`) ||
+          lower.includes(`not ${kw}`) ||
+          lower.includes(`other than ${kw}`) ||
+          lower.includes(`leave ${kw}`) ||
+          lower.includes(`anything but ${kw}`)
+        ) {
+          state.excludePackageId = pkg.id;
+          if (state.destination && state.destination.toLowerCase().includes(kw)) {
+            state.destination = null;
+          }
         }
       }
     }
-  }
 
-  // 9. Contact info extraction
-  const phoneMatch = fullText.match(/(?:\+91[\s-]?)?[6789]\d{9}/);
-  if (phoneMatch) {
-    state.customerPhone = phoneMatch[0];
-  }
-  const emailMatch = fullText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  if (emailMatch) {
-    state.customerEmail = emailMatch[0];
+    // 9. Check for uncataloged destination inquiry (e.g. "Mars", "Tokyo", "Antarctica")
+    const destRegex = /(?:visit(?:ing)?|trip\s+to|travel(?:ing)?\s+to|packages?\s+(?:for|to|in|of)|holiday\s+in|vacation\s+(?:in|to)|tours?\s+(?:in|of|to)|flights?\s+to|going\s+to)\s+([a-zA-Z]{3,20})/i;
+    const matchDest = lower.match(destRegex);
+    if (matchDest && !state.destination) {
+      const candidate = matchDest[1].trim().toLowerCase();
+      const commonStopwords = new Set([
+        'wanderlust', 'journeys', 'wanderlustjourneys', 'arjun', 'patel',
+        'agency', 'company', 'concierge', 'advisor', 'team', 'service', 'website',
+        'honeymoon', 'family', 'budget', 'couple', 'adventure', 'luxury', 'relaxed',
+        'vacation', 'holiday', 'trip', 'travel', 'tour', 'journey', 'destination',
+        'place', 'location', 'spot', 'package', 'packages', 'itinerary', 'itineraries',
+        'option', 'options', 'deal', 'deals', 'offer', 'resort', 'hotel', 'villa',
+        'flight', 'flights', 'booking', 'reservation', 'token', 'payment', 'money',
+        'pax', 'person', 'people', 'adult', 'adults', 'child', 'children', 'kid', 'kids',
+        'somewhere', 'anywhere', 'nowhere', 'everywhere', 'here', 'there',
+        'india', 'domestic', 'international', 'abroad', 'overseas',
+        'january', 'february', 'march', 'april', 'may', 'june', 'july',
+        'august', 'september', 'october', 'november', 'december',
+        'summer', 'winter', 'spring', 'autumn', 'monsoon',
+        'month', 'months', 'year', 'years', 'week', 'weeks', 'day', 'days', 'night', 'nights',
+        'next', 'upcoming', 'future', 'soon', 'today', 'tomorrow', 'tonight',
+        'know', 'see', 'book', 'plan', 'explore', 'help', 'find', 'get', 'make', 'check', 'take',
+        'mind', 'advance', 'detail', 'details', 'someone', 'anyone', 'something', 'anything',
+        'what', 'which', 'where', 'when', 'who', 'how', 'why', 'this', 'that', 'them', 'these', 'those'
+      ]);
+      const isKnownCountryOrDest = TRAVEL_PACKAGES.some(
+        (p) =>
+          p.country.toLowerCase() === candidate ||
+          p.destination.toLowerCase().includes(candidate)
+      );
+      if (!commonStopwords.has(candidate) && !isKnownCountryOrDest) {
+        state.requestedUncatalogedDestination = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+      }
+    }
+
+    // 10. Contact info extraction
+    const phoneMatch = text.match(/(?:\+91[\s-]?)?[6789]\d{9}/);
+    if (phoneMatch) {
+      state.customerPhone = phoneMatch[0];
+    }
+    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) {
+      state.customerEmail = emailMatch[0];
+    }
   }
 
   return state;
@@ -212,17 +323,24 @@ export async function POST(request: Request) {
         success: true,
         message: `Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun Patel, your senior travel concierge. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across ${availableDestinations.join(', ')}.`,
         suggestedPackages: [],
-        extractedLead: {}
+        extractedLead: {
+          destination: null,
+          budgetPerPerson: null,
+          travelers: null,
+          durationDays: null,
+          tripStyle: null,
+          isDomesticOnly: false
+        }
       });
     }
 
     const latestUserMsg = messages[messages.length - 1]?.content || '';
     const latestLower = latestUserMsg.toLowerCase();
 
-    // Extract state dynamically
+    // Extract state dynamically turn-by-turn
     const state = extractCustomerState(messages);
 
-    // Rule 1: Special case for unauthorized token requests (e.g. "I want to pay ₹500 instead of ₹2,000")
+    // Rule 1: Special case for unauthorized custom token requests
     const tokenAmount = process.env.BOOKING_TOKEN_AMOUNT_INR || '2000';
     const isCustomTokenAttempt =
       (latestLower.includes('instead') && (latestLower.includes('pay') || latestLower.includes('token') || latestLower.includes('give') || latestLower.includes('₹') || latestLower.includes('rs'))) ||
@@ -236,7 +354,14 @@ export async function POST(request: Request) {
         success: true,
         message: `Our booking reservation token is fixed at ₹${tokenAmount} per our standard agency policy. This token is 100% refundable and serves to lock in your private villa allocation and chauffeur slots while our travel designer customizes your flights. The system cannot accept custom token amounts. Would you like to proceed with the standard ₹${tokenAmount} booking token?`,
         suggestedPackages: [],
-        extractedLead: state
+        extractedLead: {
+          destination: state.destination,
+          budgetPerPerson: state.budgetPerPerson,
+          travelers: state.travelers,
+          durationDays: state.durationDays,
+          tripStyle: state.tripStyle,
+          isDomesticOnly: state.isDomesticOnly
+        }
       });
     }
 
@@ -253,7 +378,14 @@ export async function POST(request: Request) {
         success: true,
         message: `I cannot independently confirm your booking without automated verification from our payment gateway. If you completed a transaction, our backend will receive the cryptographic confirmation shortly and update your CRM dossier. Please ensure you have finalized the checkout modal or share your transaction reference ID so our human travel desk can assist.`,
         suggestedPackages: [],
-        extractedLead: state
+        extractedLead: {
+          destination: state.destination,
+          budgetPerPerson: state.budgetPerPerson,
+          travelers: state.travelers,
+          durationDays: state.durationDays,
+          tripStyle: state.tripStyle,
+          isDomesticOnly: state.isDomesticOnly
+        }
       });
     }
 
@@ -263,34 +395,76 @@ export async function POST(request: Request) {
         success: true,
         message: `We do not currently offer travel packages for ${state.requestedUncatalogedDestination}. Our official 2026 portfolio is curated exclusively for: ${availableDestinations.join(', ')}. Would you like to explore any of these destinations, or should I connect you with our bespoke private charter desk?`,
         suggestedPackages: [],
-        extractedLead: state
+        extractedLead: {
+          destination: state.destination,
+          budgetPerPerson: state.budgetPerPerson,
+          travelers: state.travelers,
+          durationDays: state.durationDays,
+          tripStyle: state.tripStyle,
+          isDomesticOnly: state.isDomesticOnly
+        }
       });
     }
 
-    // Check if the user has provided enough qualification details to recommend packages.
-    // If they only expressed an abstract wish (e.g. "I want a honeymoon trip" or "Looking for a vacation")
-    // without destination, budget, or pax/duration, Arjun MUST ask for the missing details first.
+    // Rule 4: Price / Budget Objection Handling (BUG 2)
+    // When the customer states that the price is too high or asks for cheaper options:
+    // - Do not repeat the same recommendations automatically.
+    // - Ask the customer what budget they would be comfortable with per person.
+    // - Set suggestedPackages = []
+    if (state.priceObjectionActive) {
+      const objectionPrompt = `You are Arjun Patel, Senior Travel Sales Specialist at Wanderlust Journeys.
+The traveler has stated that the pricing / packages offered are too high, too expensive, or beyond their budget.
+YOUR DIRECTIVES:
+1. Acknowledge their price sensitivity with warmth, consultative empathy, and respect.
+2. Emphasize that Wanderlust Journeys can tailor experiences and explore diverse luxury price points.
+3. Explicitly ask what budget per person they would be comfortable with for this journey.
+4. DO NOT repeat, list, or suggest any package recommendations in this turn (suggestedPackages = []).
+Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
+
+      const assistantReply = await queryGroq(objectionPrompt, messages);
+      const fallbackReply = `I completely understand! We want to make sure your journey offers exceptional luxury while remaining comfortably within your budget. What budget per person would you be comfortable with for this trip? Once you share your target budget, I will immediately review our catalog to recommend options that align with your financial comfort.`;
+
+      return NextResponse.json({
+        success: true,
+        message: assistantReply || fallbackReply,
+        suggestedPackages: [],
+        extractedLead: {
+          tripStyle: state.tripStyle,
+          destination: state.destination,
+          budgetPerPerson: null,
+          travelers: state.travelers,
+          durationDays: state.durationDays,
+          isDomesticOnly: state.isDomesticOnly
+        }
+      });
+    }
+
+    // Rule 5: Strict Qualification Gate (BUG 1)
+    // The qualification gate must execute BEFORE recommendation generation.
+    // Recommendation generation is permitted ONLY when the minimum required qualification state is satisfied.
+    // If destination is null AND budgetPerPerson is null -> NOT qualified!
+    // (e.g. "I want a honeymoon trip." -> tripStyle=honeymoon, destination=null, budget=null, travelers=null, duration=null)
     const hasSufficientQualification = Boolean(
-      state.destination ||
-      state.budgetPerPerson ||
-      (state.travelers && state.durationDays)
+      (state.destination && state.budgetPerPerson) ||
+      (state.destination && (state.travelers || state.durationDays || state.tripStyle)) ||
+      (state.budgetPerPerson && (state.destination || state.tripStyle || state.travelers || state.durationDays))
     );
 
     if (!hasSufficientQualification) {
       const styleWord = state.tripStyle ? ` ${state.tripStyle}` : '';
       const askMissingPrompt = `You are Arjun Patel, Senior Travel Sales Specialist at Wanderlust Journeys.
-The traveler has contacted you.
-- If they are inquiring about Wanderlust Journeys, introduce Wanderlust Journeys warmly as a premier luxury travel atelier curating private villa escapes, mountain sanctuaries, and bespoke journeys across: ${availableDestinations.join(', ')}.
-- If they are exploring a journey, warmly acknowledge their interest (e.g. in a${styleWord} getaway).
+The traveler is inquiring about travel, but key qualification details are missing.
+- If inquiring about Wanderlust Journeys, introduce Wanderlust Journeys warmly as a premier luxury travel atelier curating private villa escapes across: ${availableDestinations.join(', ')}.
+- If inquiring about a trip, warmly acknowledge their interest in a${styleWord} journey.
 - Inquire about their missing preferences:
-  1. Preferred destination or region (or whether they prefer domestic India or international)
+  1. Preferred destination or region (or whether domestic India or international)
   2. Approximate budget per person
   3. Number of travelers and trip duration
 CRITICAL RULES:
 - DO NOT assume any destination (do NOT assume Bali or Kashmir).
 - DO NOT assume any budget (do NOT assume ₹44,999 or ₹45,000).
 - DO NOT assume 2 travelers.
-- NEVER claim that Wanderlust is an uncataloged destination (Wanderlust Journeys is your agency!).
+- DO NOT recommend or list catalog packages until qualified (suggestedPackages = []).
 Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
 
       const assistantReply = await queryGroq(askMissingPrompt, messages);
@@ -307,17 +481,24 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
         success: true,
         message: assistantReply || fallbackPrompt,
         suggestedPackages: [],
-        extractedLead: state
+        extractedLead: {
+          tripStyle: state.tripStyle,
+          destination: state.destination,
+          budgetPerPerson: state.budgetPerPerson,
+          travelers: state.travelers,
+          durationDays: state.durationDays,
+          isDomesticOnly: state.isDomesticOnly
+        }
       });
     }
 
-    // 4. Query the dynamic catalog using extracted constraints
+    // Rule 6: Deterministic Catalog Query using verified qualification constraints
     const matchedPackages = queryCatalog({
       text: latestUserMsg,
-      destination: state.destination,
-      maxBudget: state.budgetPerPerson,
-      tripType: state.tripStyle,
-      durationDays: state.durationDays,
+      destination: state.destination || undefined,
+      maxBudget: state.budgetPerPerson || undefined,
+      tripType: state.tripStyle || undefined,
+      durationDays: state.durationDays || undefined,
       isDomesticOnly: state.isDomesticOnly,
       excludePackageId: state.excludePackageId
     });
@@ -384,7 +565,14 @@ CURRENT CUSTOMER REQUIREMENTS (EXTRACTED):
       success: true,
       message: assistantText,
       suggestedPackages: matchedPackages.slice(0, 2),
-      extractedLead: state
+      extractedLead: {
+        tripStyle: state.tripStyle,
+        destination: state.destination,
+        budgetPerPerson: state.budgetPerPerson,
+        travelers: state.travelers,
+        durationDays: state.durationDays,
+        isDomesticOnly: state.isDomesticOnly
+      }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Chat processing failed';

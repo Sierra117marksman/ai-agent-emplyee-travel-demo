@@ -4,11 +4,11 @@ import { Compass, ShieldCheck, Mail, Phone, MapPin } from 'lucide-react';
 
 export default function TravelFooter() {
   return (
-    <footer className="bg-slate-950 text-slate-400 text-xs border-t border-slate-800 py-12">
+    <footer className="bg-slate-950 text-slate-400 text-xs border-t border-slate-800 py-10 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10 sm:mb-12">
           {/* Col 1 */}
-          <div className="space-y-3 md:col-span-1">
+          <div className="space-y-3 sm:col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center text-white">
                 <Compass className="w-4 h-4" />
@@ -78,11 +78,11 @@ export default function TravelFooter() {
             <div className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Concierge Desk</div>
             <ul className="space-y-2.5">
               <li className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-teal-400" />
+                <Phone className="w-3.5 h-3.5 text-teal-400 shrink-0" />
                 <span>+91 80000 12345 (24x7 Priority)</span>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-teal-400" />
+                <Mail className="w-3.5 h-3.5 text-teal-400 shrink-0" />
                 <span>concierge@wanderlustjourneys.com</span>
               </li>
               <li className="flex items-start gap-2">
@@ -93,11 +93,11 @@ export default function TravelFooter() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
+        <div className="pt-6 sm:pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-[11px] text-slate-400 text-center sm:text-left">
           <div>© 2026 Wanderlust Journeys. All rights reserved. Powered by Webshastraa AI.</div>
-          <div className="flex items-center gap-6">
-            <span>Razorpay Test Gateway Mode Active</span>
-            <span>Server Enforced Token (₹2,000 INR)</span>
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            <span>Razorpay Test Gateway Active</span>
+            <span>Server-Locked Token (₹2,000 INR)</span>
           </div>
         </div>
       </div>
