@@ -1,5 +1,82 @@
 [
   {
+    "id": "lead_1789197016638_eotg3",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T07:10:16.639Z",
+    "updatedAt": "2026-09-12T07:10:18.065Z",
+    "razorpayOrderId": "order_Tb2Q3z5OUxlqCJ",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  },
+  {
+    "id": "lead_1789196783601_8e3ep",
+    "customerName": "Prospective Traveler",
+    "customerPhone": "",
+    "customerEmail": "",
+    "destination": "Maldives",
+    "travelDates": "Flexible",
+    "travelers": 2,
+    "budgetPerPerson": 0,
+    "tripStyle": "General",
+    "tokenAmount": 0,
+    "currency": "INR",
+    "status": "QUALIFIED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun Patel, your Senior Travel Sales Specialist & Concierge. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "beaches",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Experiencing beaches is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Maldives",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Experiencing beaches is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "2 travelers",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Experiencing beaches is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      }
+    ],
+    "createdAt": "2026-09-12T07:06:55.248Z",
+    "updatedAt": "2026-09-12T07:06:55.249Z"
+  },
+  {
     "id": "lead_1789196516329_741rx",
     "customerName": "Autonomous Test Lead",
     "customerPhone": "+91 98765 00000",

@@ -101,8 +101,12 @@ export const qualifyLeadTool: AgentTool<CustomerPreferences, QualifyLeadResult> 
     if (!pref.budgetPerPerson) {
       questions.push('What is your approximate budget per person for this journey?');
     }
-    if (!pref.travelers) {
+    if (!pref.travelers && !pref.durationDays) {
+      questions.push('How many travelers will be joining and for how many days?');
+    } else if (!pref.travelers) {
       questions.push('How many travelers will be journeying with you?');
+    } else if (!pref.durationDays) {
+      questions.push('How many days are you planning for this journey?');
     }
 
     memory.conversation.missingFields = missing;
