@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "id": "lead_1789185533355_aqxdp",
+    "customerName": "Prospective Traveler",
+    "customerPhone": "",
+    "customerEmail": "",
+    "destination": "Exploring Options",
+    "travelDates": "Flexible",
+    "travelers": 0,
+    "budgetPerPerson": 2000,
+    "tripStyle": "mountains",
+    "tokenAmount": 0,
+    "currency": "INR",
+    "status": "QUALIFIED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun, your senior travel concierge. Where are you thinking of traveling next, and what kind of trip are you dreaming of?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Give me a package for Mars.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "We do not currently offer travel packages for Mars. Our official 2026 portfolio is curated exclusively for: Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives. Would you like to explore any of these destinations, or should I connect you with our bespoke private charter desk?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "I already paid the ₹2,000 via Google Pay, please confirm my booking.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "I cannot independently confirm your booking without automated verification from our payment gateway. If you completed a transaction, our backend will receive the cryptographic confirmation shortly and update your CRM dossier. Please ensure you have finalized the checkout modal or share your transaction reference ID so our human travel desk can assist.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "I don't like beaches or hot weather. Forget Bali. Show me snow and mountains.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here are our recommended itineraries from our catalog:\n\n• **Thailand Island Hopping & Phuket** (6 Days / 5 Nights — ₹39,999/person)\n  *Speedboat island expeditions, turquoise snorkeling lagoons, dramatic limestone karsts, and nightlife.*\n\n• **Kashmir Valley & Houseboat Bliss** (6 Days / 5 Nights — ₹38,500/person)\n  *Snow-capped Himalayan peaks, fragrant pine meadows, Gulmarg alpine gondolas, and timeless Dal Lake romance.*\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?",
+        "timestamp": "Just now"
+      }
+    ],
+    "createdAt": "2026-09-12T04:00:18.072Z",
+    "updatedAt": "2026-09-12T04:00:18.074Z"
+  }
+]
