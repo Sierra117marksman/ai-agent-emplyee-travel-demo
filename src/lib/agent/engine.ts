@@ -6,6 +6,7 @@ import {
   AgentTurnResult,
   AgentMemory
 } from './types';
+import { generateQuickReplies } from './quickReplies';
 import { perceiveTurn } from './perception';
 import { planNextAction } from './planner';
 import {
@@ -100,12 +101,20 @@ export async function runAgentTurn(
       }
     };
 
+    const initialQuickReplies = generateQuickReplies({
+      packages: TRAVEL_PACKAGES,
+      availableDestinations,
+      memory: initialMemory,
+      goal: 'GREET'
+    });
+
     return {
       success: true,
       message: `Namaste! 🙏 Welcome to ${config.companyName}. I am ${config.name}, your ${config.role}. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across ${availableDestinations.join(', ')}.`,
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: initialQuickReplies,
       extractedLead: {
         tripStyle: null,
         interests: [],
@@ -157,6 +166,16 @@ export async function runAgentTurn(
     requirementMode: perception.destination?.relation === 'INFO_QUERY' ? 'EXPLORATORY' as const : (perception.budget ? perception.budget.mode : (perception.travelers ? perception.travelers.mode : 'ACTUAL_REQUIREMENT' as const))
   });
 
+  // Helper for generating dynamic quick replies
+  const getQuickReplies = (goal: string) =>
+    generateQuickReplies({
+      packages: TRAVEL_PACKAGES,
+      availableDestinations,
+      memory,
+      goal,
+      perception
+    });
+
   // 4. Execution & Synthesis Phase by Goal
 
   // Goal: GREET
@@ -167,6 +186,7 @@ export async function runAgentTurn(
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -185,6 +205,7 @@ export async function runAgentTurn(
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -204,6 +225,7 @@ export async function runAgentTurn(
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -231,6 +253,7 @@ export async function runAgentTurn(
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -272,6 +295,7 @@ Keep your response warm, consultative, and concise (1-2 paragraphs).`;
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -301,6 +325,7 @@ Keep your response warm, consultative, and concise (1-2 paragraphs).`;
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -325,6 +350,7 @@ Keep your response warm, consultative, and concise (1-2 paragraphs).`;
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -360,6 +386,7 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -429,6 +456,7 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -484,6 +512,7 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       qualifyingPackages: [],
       alternativePackages,
       suggestedPackages: [], // strictly empty
+      quickReplies: getQuickReplies(plan.goal),
       extractedLead: getExtractedLead(memory),
       memory,
       executedTool: {
@@ -556,6 +585,7 @@ CURRENT CUSTOMER REQUIREMENTS (EXTRACTED):
     qualifyingPackages,
     alternativePackages,
     suggestedPackages, // Strictly qualifying
+    quickReplies: getQuickReplies(plan.goal),
     extractedLead: getExtractedLead(memory),
     memory,
     executedTool: {

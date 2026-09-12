@@ -269,4 +269,22 @@ export interface AgentTurnResult {
     input: unknown;
     output: unknown;
   };
+  quickReplies?: QuickReply[];
 }
+
+export type QuickReplyType =
+  | 'interest'
+  | 'destination'
+  | 'budget'
+  | 'traveler_group'
+  | 'duration'
+  | 'action'
+  | 'free_text';
+
+export interface QuickReply {
+  type: QuickReplyType;
+  label: string;
+  value: string | number;
+  category?: string;
+}
+

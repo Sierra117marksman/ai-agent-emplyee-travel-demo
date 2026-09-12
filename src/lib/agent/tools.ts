@@ -90,7 +90,7 @@ export const qualifyLeadTool: AgentTool<CustomerPreferences, QualifyLeadResult> 
     // E.g. "I don't care where, I just want mountains under ₹15k" (flexible dest + interest + budget) -> true
     const hasSufficientQualification = Boolean(
       (pref.destination && pref.budgetPerPerson) ||
-      (pref.destination && (pref.travelers || pref.durationDays || pref.tripStyle)) ||
+      (pref.destination && (pref.durationDays || pref.tripStyle)) ||
       (pref.budgetPerPerson && (pref.destination || pref.tripStyle || pref.travelers || pref.durationDays || pref.interests.length > 0 || pref.destinationFlexibility === 'yes'))
     );
 

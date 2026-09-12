@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "id": "lead_1789191689725_zzrpr",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T05:41:29.726Z",
+    "updatedAt": "2026-09-12T05:41:29.945Z",
+    "razorpayOrderId": "order_Tb0uGooKPSzEVz",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  }
+]

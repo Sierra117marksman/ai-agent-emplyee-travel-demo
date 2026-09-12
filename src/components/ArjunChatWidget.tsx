@@ -9,6 +9,7 @@ import React, {
   useCallback
 } from 'react';
 import { TravelPackage } from '@/lib/packages';
+import { QuickReply } from '@/lib/agent/types';
 import {
   X,
   Send,
@@ -95,6 +96,8 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Lazy initialize leadId without synchronous setState in effect
   const [leadId] = useState<string>(() => {
@@ -121,6 +124,40 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
   } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch initial greeting and dynamic quick replies when widget opens
+  useEffect(() => {
+    if (isOpen && quickReplies.length === 0) {
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [] })
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success) {
+            if (data.message && messages.length <= 1) {
+              setMessages((prev) =>
+                prev.length <= 1
+                  ? [
+                      {
+                        id: 'msg-init',
+                        role: 'assistant',
+                        content: data.message,
+                        timestamp: 'Just now'
+                      }
+                    ]
+                  : prev
+              );
+            }
+            if (data.quickReplies && Array.isArray(data.quickReplies)) {
+              setQuickReplies(data.quickReplies);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, quickReplies.length, messages.length]);
 
   // Load Razorpay Checkout Script once on mount
   useEffect(() => {
@@ -176,6 +213,9 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                 : undefined
           };
           setMessages((prev) => [...prev, assistantMsg]);
+          if (data.quickReplies && Array.isArray(data.quickReplies)) {
+            setQuickReplies(data.quickReplies);
+          }
 
           if (data.extractedLead?.customerName && !customerName) {
             setCustomerName(data.extractedLead.customerName);
@@ -246,6 +286,18 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
       }
     ]);
   };
+
+  const handleQuickReplyClick = useCallback(
+    (reply: QuickReply) => {
+      if (reply.type === 'free_text') {
+        inputRef.current?.focus();
+        return;
+      }
+      // CRITICAL: Always dispatch reply.value (semantic value), NEVER reply.label (presentation text/emojis)
+      void handleSendMessage(String(reply.value));
+    },
+    [handleSendMessage]
+  );
 
   // Expose imperative handle for clean event-driven communication without cascading effects
   useImperativeHandle(
@@ -540,30 +592,33 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick-reply chip bar with horizontal touch scroll */}
-          <div className="px-3 py-2 bg-slate-900/80 border-t border-slate-850 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs shrink-0">
-            <button
-              type="button"
-              onClick={() => void handleSendMessage('Bali for honeymoon, budget around ₹45k per person')}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 whitespace-nowrap active:scale-95 shrink-0"
-            >
-              🏝️ Bali Honeymoon
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSendMessage('Kashmir Valley for 2 people with houseboat stay')}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 whitespace-nowrap active:scale-95 shrink-0"
-            >
-              🏔️ Kashmir Houseboat
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSendMessage('What packages do you have under ₹40,000?')}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 whitespace-nowrap active:scale-95 shrink-0"
-            >
-              💰 Under ₹40k
-            </button>
-          </div>
+          {/* Dynamic Quick-Reply Chips (Zero Hardcoded Business Values) */}
+          {quickReplies.length > 0 && (
+            <div className="px-3 py-2 bg-slate-900/90 border-t border-slate-800 flex flex-col gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs">
+                {quickReplies.map((reply, idx) => (
+                  <button
+                    key={`${reply.type}-${idx}-${reply.value}`}
+                    type="button"
+                    onClick={() => handleQuickReplyClick(reply)}
+                    disabled={isLoading}
+                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap active:scale-95 transition-all text-xs font-medium cursor-pointer shrink-0 ${
+                      reply.type === 'action'
+                        ? 'bg-gradient-to-r from-teal-500/20 to-emerald-500/20 border border-teal-500/40 text-teal-300 hover:bg-teal-500/30'
+                        : reply.type === 'free_text'
+                        ? 'bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                        : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-750'
+                    }`}
+                  >
+                    {reply.label}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-slate-500 pl-0.5 italic">
+                Tap an option above or type your own below:
+              </div>
+            </div>
+          )}
 
           {/* Input Bar with iOS safe area padding */}
           <form
@@ -574,6 +629,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
             className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0"
           >
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}

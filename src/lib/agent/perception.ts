@@ -880,8 +880,11 @@ export function resolveEllipsis(
   if (!lastAssistantQuestion) return null;
   const qLower = lastAssistantQuestion.toLowerCase();
 
-  // If assistant asked for duration, and user says "Four" or "4"
-  if (qLower.includes('how many days') || qLower.includes('duration') || qLower.includes('how long')) {
+  // If assistant asked for duration, and user says "Four" or "4" (and not "4 travelers")
+  if (
+    (qLower.includes('how many days') || qLower.includes('duration') || qLower.includes('how long')) &&
+    !/\b(?:travelers?|travellers?|people|persons?|pax|adults?|kids?)\b/i.test(lower)
+  ) {
     const num = parseInt(lower, 10);
     const words: Record<string, number> = { three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, ten: 10 };
     const days = !isNaN(num) ? num : words[lower];
@@ -890,8 +893,11 @@ export function resolveEllipsis(
     }
   }
 
-  // If assistant asked for travelers, and user says "Two"
-  if (qLower.includes('how many travelers') || qLower.includes('how many people')) {
+  // If assistant asked for travelers, and user says "Two" (and not "2 days")
+  if (
+    (qLower.includes('how many travelers') || qLower.includes('how many people')) &&
+    !/\b(?:days?|nights?)\b/i.test(lower)
+  ) {
     const num = parseInt(lower, 10);
     const words: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
     const travelers = !isNaN(num) ? num : words[lower];
