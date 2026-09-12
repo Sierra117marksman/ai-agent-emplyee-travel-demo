@@ -1,182 +1,256 @@
 export interface TravelPackage {
   id: string;
-  title: string;
+  name: string;
+  title: string; // compatibility alias for name
   destination: string;
+  country: string;
+  isDomesticIndia: boolean;
   duration: string;
   days: number;
   nights: number;
   pricePerPerson: number;
   currency: string;
+  category: string;
   rating: number;
   reviewsCount: number;
-  category: 'honeymoon' | 'adventure' | 'luxury' | 'family' | 'relaxed';
-  highlights: string[];
-  inclusions: string[];
   description: string;
-  gradient: string;
+  inclusions: string[];
+  exclusions: string[];
+  interests: string[];
+  suitableFor: string[];
+  availabilityStatus: 'available' | 'limited' | 'sold_out';
+  highlights: string[];
+  gradient?: string;
 }
 
 export const TRAVEL_PACKAGES: TravelPackage[] = [
   {
     id: 'bali-romantic-villa',
+    name: 'Bali Romantic Villa Escape',
     title: 'Bali Romantic Villa Escape',
-    destination: 'Bali, Indonesia',
+    destination: 'Bali',
+    country: 'Indonesia',
+    isDomesticIndia: false,
     duration: '5 Days / 4 Nights',
     days: 5,
     nights: 4,
     pricePerPerson: 44999,
     currency: 'INR',
+    category: 'honeymoon',
     rating: 4.9,
     reviewsCount: 128,
-    category: 'honeymoon',
+    description: 'Designed for couples, blending the mist-shrouded jungle serenity of Ubud with vibrant beachfront sunsets in Seminyak.',
+    inclusions: [
+      '4 Nights 5-Star Luxury Villa with Private Pool',
+      'Daily Floating Breakfast & 1 Candlelight Dinner at Jimbaran',
+      'Private Chauffeur & English Speaking Guide throughout',
+      'Nusa Penida Catamaran Sunset Cruise with Fast Boat Transfers'
+    ],
+    exclusions: [
+      'International Flight Airfare',
+      'Indonesia Visa on Arrival fee (~$35 USD)',
+      'Personal laundry, tips, and optional water-sport rentals'
+    ],
+    interests: ['romantic', 'beaches', 'villas', 'culture', 'sunset-cruise', 'spa'],
+    suitableFor: ['couples', 'honeymooners'],
+    availabilityStatus: 'available',
     highlights: [
       'Private pool villa in Ubud & Seminyak beachfront resort',
       'Nusa Penida sunset catamaran cruise with champagne',
       'Couples Balinese aromatherapy spa session',
       'Candlelight dinner at Jimbaran Bay'
     ],
-    inclusions: [
-      '4 Nights 5-Star Luxury Villa Accommodation',
-      'Daily Floating Breakfast & Candlelight Dinners',
-      'Private Chauffeur & English Speaking Guide',
-      'Airport Transfers & Nusa Penida Fast Boat'
-    ],
-    description: 'Designed exclusively for couples, this itinerary blends the mist-shrouded jungle serenity of Ubud with the vibrant beachfront sunsets of Seminyak.',
     gradient: 'from-emerald-500 to-teal-700'
   },
   {
     id: 'kashmir-heaven-valleys',
+    name: 'Kashmir Valley & Houseboat Bliss',
     title: 'Kashmir Valley & Houseboat Bliss',
-    destination: 'Kashmir, India',
+    destination: 'Kashmir',
+    country: 'India',
+    isDomesticIndia: true,
     duration: '6 Days / 5 Nights',
     days: 6,
     nights: 5,
     pricePerPerson: 38500,
     currency: 'INR',
+    category: 'honeymoon',
     rating: 4.8,
     reviewsCount: 210,
-    category: 'honeymoon',
+    description: 'Snow-capped Himalayan peaks, fragrant pine meadows, Gulmarg alpine gondolas, and timeless Dal Lake romance.',
+    inclusions: [
+      '1 Night Heritage Houseboat on Dal Lake + 4 Nights Boutique Valley Resorts',
+      'Breakfast & Gourmet Kashmiri Multi-Course Dinners included',
+      'Dedicated Private SUV (Innova/Crysta) for entire valley tour',
+      'Gondola Priority Booking Assistance & 1-hour Shikara Ride'
+    ],
+    exclusions: [
+      'Flight tickets to/from Srinagar',
+      'Pony rides or local union sledges in Gulmarg/Pahalgam',
+      'Chain-cab transfers in heavy snow conditions'
+    ],
+    interests: ['mountains', 'snow', 'romantic', 'nature', 'houseboat', 'adventure'],
+    suitableFor: ['couples', 'honeymooners', 'families', 'nature-lovers'],
+    availabilityStatus: 'available',
     highlights: [
       'Handcrafted heritage houseboat stay on Dal Lake',
       'Gulmarg Gondola Phase 1 & 2 alpine snow excursion',
       'Pahalgam Betaab Valley & Aru Valley private exploration',
       'Shikara ride at golden sunset with Kashmiri Kahwa'
     ],
-    inclusions: [
-      '1 Night Premium Houseboat + 4 Nights Boutique Valley Resorts',
-      'Breakfast & Gourmet Kashmiri Dinners included',
-      'Dedicated Private SUV (Innova/Crysta) for entire tour',
-      'Gondola Priority Booking Assistance & Shikara Tickets'
-    ],
-    description: 'Breathtaking snow-capped Himalayan peaks, fragrant pine meadows, and timeless Dal Lake romanticism curated for memorable journeys.',
     gradient: 'from-blue-600 to-indigo-800'
   },
   {
     id: 'dubai-luxury-desert',
+    name: 'Dubai Ultra Luxury & Desert Dunes',
     title: 'Dubai Ultra Luxury & Desert Dunes',
-    destination: 'Dubai, UAE',
+    destination: 'Dubai',
+    country: 'UAE',
+    isDomesticIndia: false,
     duration: '5 Days / 4 Nights',
     days: 5,
     nights: 4,
     pricePerPerson: 54999,
     currency: 'INR',
+    category: 'luxury',
     rating: 4.9,
     reviewsCount: 94,
-    category: 'luxury',
+    description: 'Cosmopolitan glamour, iconic sky lounges, private desert safaris, and 5-star Arabian hospitality.',
+    inclusions: [
+      '4 Nights at 5-Star Downtown Dubai Hotel',
+      'Daily international buffet breakfast',
+      'VIP Desert Safari in 4x4 Land Cruiser with BBQ dinner & show',
+      'Burj Khalifa 124th + 125th Floor Sky Lounge admission',
+      'Private luxury sedan airport & excursion transfers'
+    ],
+    exclusions: [
+      'UAE Tourist Visa fees',
+      'Tourism Dirham tax (payable directly at hotel checkout)',
+      'Optional skydiving or helicopter tours'
+    ],
+    interests: ['luxury', 'shopping', 'desert', 'architecture', 'family-fun'],
+    suitableFor: ['families', 'luxury-seekers', 'couples'],
+    availabilityStatus: 'available',
     highlights: [
       'Burj Khalifa 124th + 125th Floor Sky Lounge admission',
       'Private VIP Desert Safari with dune bashing & barbecue',
       'Marina Yacht sunset cruise with international buffet',
       'Aquaventure Waterpark at Atlantis The Palm'
     ],
-    inclusions: [
-      '4 Nights at 5-Star Downtown Dubai Hotel',
-      'Daily international buffet breakfast',
-      'Private luxury sedan airport & excursion transfers',
-      'Tourist Visa assistance & all museum entry passes'
-    ],
-    description: 'The pinnacle of cosmopolitan glamour and majestic Arabian desert heritage with five-star hospitality throughout.',
     gradient: 'from-amber-500 to-orange-700'
   },
   {
     id: 'kerala-backwaters-munnar',
+    name: 'Kerala Backwaters & Munnar Mist',
     title: 'Kerala Backwaters & Munnar Mist',
-    destination: 'Kerala, India',
+    destination: 'Kerala',
+    country: 'India',
+    isDomesticIndia: true,
     duration: '5 Days / 4 Nights',
     days: 5,
     nights: 4,
     pricePerPerson: 29999,
     currency: 'INR',
+    category: 'relaxed',
     rating: 4.7,
     reviewsCount: 165,
-    category: 'relaxed',
+    description: 'Rolling tea estates, cool hill station breezes, tranquil palm backwaters, and Ayurvedic wellness.',
+    inclusions: [
+      '3 Nights Luxury Tea Estate Resort in Munnar + 1 Night Deluxe Houseboat',
+      'Houseboat all meals included (traditional Kerala culinary spread)',
+      'Dedicated AC Chauffeur sedan throughout tour with tolls included',
+      'Ayurvedic spice garden discovery tour & tea tasting'
+    ],
+    exclusions: [
+      'Train or air tickets to/from Kochi',
+      'Optional Kathakali or Kalaripayattu cultural performance tickets',
+      'Personal expenses and extra safari jeeps'
+    ],
+    interests: ['nature', 'tea-gardens', 'houseboat', 'wellness', 'relaxation'],
+    suitableFor: ['families', 'couples', 'elderly-friendly'],
+    availabilityStatus: 'available',
     highlights: [
       'Munnar tea gardens & Mattupetty dam nature trek',
       'Private AC Alleppey houseboat cruise with onboard chef',
       'Spice plantation discovery walk in Thekkady',
-      'Traditional Ayurvedic rejuvenation massage'
+      'Traditional Ayurvedic rejuvenation session'
     ],
-    inclusions: [
-      '3 Nights Hill Resorts + 1 Night Deluxe Houseboat',
-      'Houseboat all meals included (traditional Kerala cuisine)',
-      'Dedicated AC Sedan throughout with toll & parking',
-      'Spice garden entry & tea tasting session'
-    ],
-    description: 'Lush rolling tea estates, tranquil palm-fringed backwaters, and rejuvenating coastal breezes in God’s Own Country.',
     gradient: 'from-teal-600 to-emerald-800'
   },
   {
     id: 'thailand-island-hop',
+    name: 'Thailand Island Hopping & Phuket',
     title: 'Thailand Island Hopping & Phuket',
-    destination: 'Phuket & Krabi, Thailand',
+    destination: 'Phuket & Krabi',
+    country: 'Thailand',
+    isDomesticIndia: false,
     duration: '6 Days / 5 Nights',
     days: 6,
     nights: 5,
     pricePerPerson: 39999,
     currency: 'INR',
+    category: 'adventure',
     rating: 4.8,
     reviewsCount: 142,
-    category: 'adventure',
+    description: 'Speedboat island expeditions, turquoise snorkeling lagoons, dramatic limestone karsts, and nightlife.',
+    inclusions: [
+      '3 Nights Phuket Beachfront Hotel + 2 Nights Krabi Cliffside Resort',
+      'Daily buffet breakfast + 2 full-day island excursion lunches',
+      'Phi Phi Islands & Maya Bay VIP Speedboat tour with snorkeling gear',
+      'All national marine park entrance fees and private van transfers'
+    ],
+    exclusions: [
+      'International flights to/from Phuket',
+      'Thailand Visa fees (or VOA queue fees if applicable)',
+      'Scuba diving certifications or motorized water sports'
+    ],
+    interests: ['adventure', 'islands', 'snorkeling', 'beaches', 'nightlife'],
+    suitableFor: ['adventure-seekers', 'friends', 'couples'],
+    availabilityStatus: 'available',
     highlights: [
       'Phi Phi Islands speedboat tour with Maya Bay snorkeling',
       'Krabi 4-Island sunset cruise with bioluminescent plankton',
       'James Bond Island sea canoe expedition',
       'Patong nightlife & cultural Old Town walking tour'
     ],
-    inclusions: [
-      '3 Nights Phuket Beachfront + 2 Nights Krabi Cliff Resort',
-      'Daily buffet breakfast & 2 Island excursion lunches',
-      'Speedboat transfers, snorkeling gear & national park fees',
-      'Airport & inter-city private van transfers'
-    ],
-    description: 'Crystal turquoise waters, limestone karsts, and vibrant night markets designed for adventurous and youthful spirits.',
     gradient: 'from-cyan-500 to-blue-700'
   },
   {
     id: 'maldives-all-inclusive',
+    name: 'Maldives Overwater Lagoon Sanctuary',
     title: 'Maldives Overwater Lagoon Sanctuary',
     destination: 'Maldives',
+    country: 'Maldives',
+    isDomesticIndia: false,
     duration: '4 Days / 3 Nights',
     days: 4,
     nights: 3,
     pricePerPerson: 79999,
     currency: 'INR',
+    category: 'luxury',
     rating: 5.0,
     reviewsCount: 78,
-    category: 'luxury',
+    description: 'Private overwater villa with direct coral lagoon access, all-inclusive gourmet dining, and sunsets.',
+    inclusions: [
+      '3 Nights Luxury Overwater Villa with Glass-Floor Lagoon Viewing',
+      'All-Inclusive Dine-Around Meals, Afternoon Snacks & Premium Beverages',
+      'Roundtrip Speedboat / Seaplane Airport Transfers included',
+      'Sunset Dolphin Safari cruise & complimentary snorkeling gear'
+    ],
+    exclusions: [
+      'International flights to/from Male (MLE)',
+      'Spa treatments (unless specified in package voucher)',
+      'Motorized water sports (jet ski, parasailing)'
+    ],
+    interests: ['luxury', 'overwater-villa', 'coral-reef', 'romantic', 'ocean'],
+    suitableFor: ['honeymooners', 'couples', 'luxury-retreats'],
+    availabilityStatus: 'available',
     highlights: [
       'Overwater bungalow with glass floor viewing & direct ocean access',
       'All-inclusive premium beverages & multi-cuisine dining',
       'Sunset dolphin safari cruise on a traditional dhoni',
       'Complimentary non-motorized watersports and coral reef snorkel'
     ],
-    inclusions: [
-      '3 Nights Luxury Overwater Villa',
-      'All-Inclusive Meals, Snacks & Premium Beverages',
-      'Roundtrip Speedboat / Seaplane Resort Transfers',
-      'Complimentary Snorkeling equipment & photo session'
-    ],
-    description: 'An idyllic private island sanctuary in the Indian Ocean where translucent lagoons meet pristine white sands.',
     gradient: 'from-sky-500 to-indigo-700'
   }
 ];
@@ -185,17 +259,99 @@ export function getPackageById(id: string): TravelPackage | undefined {
   return TRAVEL_PACKAGES.find((pkg) => pkg.id === id);
 }
 
-export function searchPackages(query: string, maxBudget?: number): TravelPackage[] {
-  const normalizedQuery = query.toLowerCase().trim();
-  return TRAVEL_PACKAGES.filter((pkg) => {
-    const matchesText =
-      !normalizedQuery ||
-      pkg.title.toLowerCase().includes(normalizedQuery) ||
-      pkg.destination.toLowerCase().includes(normalizedQuery) ||
-      pkg.category.toLowerCase().includes(normalizedQuery) ||
-      pkg.description.toLowerCase().includes(normalizedQuery);
+export interface CatalogSearchQuery {
+  text?: string;
+  destination?: string;
+  maxBudget?: number;
+  tripType?: string;
+  durationDays?: number;
+  isDomesticOnly?: boolean;
+  excludePackageId?: string;
+}
 
-    const matchesBudget = !maxBudget || pkg.pricePerPerson <= maxBudget;
-    return matchesText && matchesBudget;
-  });
+/**
+ * Pure Data-Driven Catalog Filtering & Scoring Engine.
+ * Does NOT hardcode any destinations. Evaluates matches strictly against
+ * the current packages in the catalog.
+ */
+export function queryCatalog(query: CatalogSearchQuery): TravelPackage[] {
+  const scored: Array<{ pkg: TravelPackage; score: number }> = [];
+
+  const textTerms = (query.text || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const destTerm = (query.destination || '').toLowerCase().trim();
+  const tripTypeTerm = (query.tripType || '').toLowerCase().trim();
+
+  for (const pkg of TRAVEL_PACKAGES) {
+    if (query.excludePackageId && pkg.id === query.excludePackageId) {
+      continue;
+    }
+
+    if (query.isDomesticOnly && !pkg.isDomesticIndia) {
+      continue;
+    }
+
+    let score = 0;
+
+    // 1. Destination match
+    if (destTerm) {
+      if (pkg.destination.toLowerCase().includes(destTerm) || pkg.country.toLowerCase().includes(destTerm)) {
+        score += 50;
+      }
+    }
+
+    // 2. Trip type / category match
+    if (tripTypeTerm) {
+      if (pkg.category.toLowerCase().includes(tripTypeTerm) || pkg.suitableFor.some((s) => s.toLowerCase().includes(tripTypeTerm))) {
+        score += 30;
+      }
+    }
+
+    // 3. Free text term matches
+    for (const term of textTerms) {
+      if (pkg.destination.toLowerCase().includes(term) || pkg.country.toLowerCase().includes(term)) {
+        score += 25;
+      } else if (pkg.name.toLowerCase().includes(term)) {
+        score += 20;
+      } else if (pkg.category.toLowerCase().includes(term)) {
+        score += 15;
+      } else if (pkg.interests.some((i) => i.toLowerCase().includes(term))) {
+        score += 15;
+      } else if (pkg.description.toLowerCase().includes(term)) {
+        score += 5;
+      }
+    }
+
+    // 4. Budget constraints
+    if (query.maxBudget) {
+      if (pkg.pricePerPerson <= query.maxBudget) {
+        score += 20;
+      } else if (pkg.pricePerPerson <= query.maxBudget * 1.15) {
+        // Within 15% margin
+        score += 5;
+      } else {
+        // Significantly over budget: heavily penalize unless explicitly requested by destination
+        score -= 30;
+      }
+    }
+
+    // 5. Duration match
+    if (query.durationDays && Math.abs(pkg.days - query.durationDays) <= 1) {
+      score += 10;
+    }
+
+    if (score > 0) {
+      scored.push({ pkg, score });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map((s) => s.pkg);
+}
+
+export function searchPackages(query: string, maxBudget?: number): TravelPackage[] {
+  return queryCatalog({ text: query, maxBudget });
+}
+
+export function getAllAvailableDestinations(): string[] {
+  return Array.from(new Set(TRAVEL_PACKAGES.map((p) => p.destination)));
 }
