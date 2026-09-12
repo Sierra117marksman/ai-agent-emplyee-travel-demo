@@ -1,5 +1,6 @@
 import {
-  TRAVEL_PACKAGES
+  TRAVEL_PACKAGES,
+  getDestinationMatchingInterests
 } from '@/lib/packages';
 import {
   AgentConfig,
@@ -538,11 +539,19 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     if (hasInterests) knownList.push(`Interests: ${prefs.interests.join(', ')}`);
 
     const isFirstTurn = messages.length <= 1;
+    const verifiedInterests = getDestinationMatchingInterests(prefs.destination, prefs.interests);
+    const verifiedInterestStr = verifiedInterests.length > 0 ? verifiedInterests.join(', ') : 'None';
+
     const askMissingPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
 The traveler is inquiring about travel, and you need to collect the remaining qualification details.
 
 ALREADY KNOWN FROM TRAVELER (CRITICAL: NEVER ASK FOR ANY OF THESE AGAIN):
 ${knownList.length > 0 ? knownList.map((k) => `- ${k}`).join('\n') : '- None yet'}
+
+DESTINATION & INTEREST COMPATIBILITY:
+- Destination: ${prefs.destination || 'None specified yet'}
+- Customer Interests: ${prefs.interests.length > 0 ? prefs.interests.join(', ') : 'None'}
+- Verified Destination Interests (supported by catalog): ${verifiedInterestStr}
 
 REMAINING MISSING QUESTIONS TO ASK (CRITICAL: ASK ONLY THESE):
 ${missingQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n')}
@@ -554,6 +563,12 @@ ${
     ? '- You may begin with "Namaste! 🙏" as an initial welcoming greeting.'
     : '- DO NOT start with "Namaste! 🙏" or formal opening greetings. The conversation is already underway, so transition naturally and directly into acknowledging their preferences.'
 }
+- CRITICAL INVARIANT - SEMANTIC RELATIONSHIP AUTHORITY:
+  - ONLY mention Verified Destination Interests when explaining why a destination fits the traveler\'s preferences.
+  - NEVER claim a destination satisfies an interest if it is NOT in Verified Destination Interests (e.g., NEVER claim "Kashmir is great for beaches", "Dubai is great for snow", or "Maldives has mountain treks"). If the customer previously mentioned an interest that the destination does not offer, warmly acknowledge the destination on its own merits without asserting an unverified connection.
+- PORTFOLIO CONTEXT:
+  - If a destination is already chosen (e.g. ${prefs.destination || 'Kashmir'}), focus exclusively on that destination. DO NOT recite or list the other portfolio destinations.
+  - If no destination is chosen yet, you may refer to our curated portfolio (${availableDestinations.join(', ')}).
 - Inquire ONLY about the remaining missing questions listed above. DO NOT ask for details that are already known.
 - DO NOT assume any destination, budget, or travelers that were not stated.
 - DO NOT recommend or list catalog packages until qualified (suggestedPackages = []).
@@ -574,11 +589,12 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       const greetingPrefix = isFirstTurn ? 'Namaste! 🙏 ' : '';
       let preamble = '';
       if (prefs.destination && prefs.travelers) {
-        preamble = `${greetingPrefix}A wonderful journey for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`} to ${prefs.destination}! To help our travel designers curate the perfect itinerary for you:`;
+        preamble = `${greetingPrefix}A wonderful journey for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`} to ${prefs.destination}! To help our travel designers curate the perfect ${prefs.destination} itinerary for you:`;
       } else if (prefs.destination) {
-        preamble = `${greetingPrefix}${prefs.destination} is a fantastic choice${hasInterests ? ` for experiencing ${interestStr}` : ''}! To help our travel designers curate the ideal itinerary for you from our official portfolio:`;
+        const matchingNote = verifiedInterests.length > 0 ? ` for experiencing ${verifiedInterests.join(' & ')}` : '';
+        preamble = `${greetingPrefix}${prefs.destination} is a fantastic choice${matchingNote}! To help our travel designers curate the ideal ${prefs.destination} itinerary for you:`;
       } else if (prefs.travelers) {
-        preamble = `${greetingPrefix}A wonderful trip for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`}${hasInterests ? ` to experience ${interestStr}` : ''}! To help our travel designers curate the perfect experience for you:`;
+        preamble = `${greetingPrefix}A wonderful trip for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`}${hasInterests ? ` to experience ${interestStr}` : ''}! To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}):`;
       } else if (hasInterests) {
         preamble = `${greetingPrefix}Experiencing ${interestStr} is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
       } else if (styleStr) {
