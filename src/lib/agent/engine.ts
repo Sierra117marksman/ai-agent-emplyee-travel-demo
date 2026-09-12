@@ -509,26 +509,19 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     const hasTravelers = Boolean(prefs.travelers);
     const hasDuration = Boolean(prefs.durationDays);
 
-    // Build strictly the missing questions (never ask already-answered questions)
-    const missingQuestions: string[] = [];
-
+    // Progressive single-question selection (Ask ONE next-best question)
+    let nextTargetQuestion = '';
     if (!hasDestination) {
-      missingQuestions.push('Do you have a preferred destination in mind, or are you open to exploring domestic and international options?');
-    }
-
-    if (!hasBudget) {
-      missingQuestions.push('What is your approximate budget per person?');
-    }
-
-    if (!hasTravelers && !hasDuration) {
-      missingQuestions.push('How many travelers will be joining and for how many days?');
+      nextTargetQuestion = 'Do you have a preferred destination in mind, or are you open to exploring domestic and international options?';
+    } else if (!hasBudget) {
+      nextTargetQuestion = 'What is your approximate budget per person for this journey?';
     } else if (!hasTravelers) {
-      missingQuestions.push('How many travelers will be journeying with you?');
+      nextTargetQuestion = 'How many travelers will be journeying with you?';
     } else if (!hasDuration) {
-      missingQuestions.push('How many days are you planning for this trip?');
+      nextTargetQuestion = 'How many days are you planning for this journey?';
     }
 
-    // Prepare known summary and missing list for LLM
+    // Prepare known summary for LLM
     const knownList: string[] = [];
     if (prefs.destination) knownList.push(`Destination: ${prefs.destination}`);
     else if (prefs.destinationFlexibility === 'yes') knownList.push('Destination: Flexible / Open to exploring anywhere');
@@ -543,21 +536,22 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     const verifiedInterestStr = verifiedInterests.length > 0 ? verifiedInterests.join(', ') : 'None';
 
     const askMissingPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
-The traveler is inquiring about travel, and you need to collect the remaining qualification details.
+The traveler is inquiring about travel, and you need to collect the next qualification detail.
 
 ALREADY KNOWN FROM TRAVELER (CRITICAL: NEVER ASK FOR ANY OF THESE AGAIN):
 ${knownList.length > 0 ? knownList.map((k) => `- ${k}`).join('\n') : '- None yet'}
 
 DESTINATION & INTEREST COMPATIBILITY:
-- Destination: ${prefs.destination || 'None specified yet'}
+- Destination: ${prefs.destination || (prefs.destinationFlexibility === 'yes' ? 'Flexible / Anywhere' : 'None specified yet')}
 - Customer Interests: ${prefs.interests.length > 0 ? prefs.interests.join(', ') : 'None'}
 - Verified Destination Interests (supported by catalog): ${verifiedInterestStr}
 
-REMAINING MISSING QUESTIONS TO ASK (CRITICAL: ASK ONLY THESE):
-${missingQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n')}
+NEXT CRITICAL QUESTION TO ASK (CRITICAL: ASK ONLY THIS ONE FOCUSED QUESTION):
+- ${nextTargetQuestion}
 
 CRITICAL RULES:
-- Warmly acknowledge what the traveler just stated (e.g. if they stated a destination or traveler count, acknowledge it warmly).
+- Progressive discovery: Ask ONLY the one target question above. DO NOT ask multiple questions at once. DO NOT ask for budget, travelers, and duration in a single message if only one is requested.
+- Warmly acknowledge what the traveler just stated (e.g. if they stated a destination, budget, or interest, acknowledge it warmly).
 ${
   isFirstTurn
     ? '- You may begin with "Namaste! 🙏" as an initial welcoming greeting.'
@@ -569,7 +563,6 @@ ${
 - PORTFOLIO CONTEXT:
   - If a destination is already chosen (e.g. ${prefs.destination || 'Kashmir'}), focus exclusively on that destination. DO NOT recite or list the other portfolio destinations.
   - If no destination is chosen yet, you may refer to our curated portfolio (${availableDestinations.join(', ')}).
-- Inquire ONLY about the remaining missing questions listed above. DO NOT ask for details that are already known.
 - DO NOT assume any destination, budget, or travelers that were not stated.
 - DO NOT recommend or list catalog packages until qualified (suggestedPackages = []).
 Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
@@ -587,30 +580,34 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       fallbackPrompt = `Namaste! 🙏 ${config.companyName} is a premier bespoke travel atelier. We craft ultra-luxury private villa escapes, mountain retreats, and cultural journeys with dedicated chauffeurs, 5-star boutique stays, and VIP concierge access. Our official 2026 portfolio features hand-crafted journeys across ${availableDestinations.join(', ')}. How may I assist with your travel dreams today?`;
     } else {
       const greetingPrefix = isFirstTurn ? 'Namaste! 🙏 ' : '';
-      let preamble = '';
-      if (prefs.destination && prefs.travelers) {
-        preamble = `${greetingPrefix}A wonderful journey for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`} to ${prefs.destination}! To help our travel designers curate the perfect ${prefs.destination} itinerary for you:`;
-      } else if (prefs.destination) {
-        const matchingNote = verifiedInterests.length > 0 ? ` for experiencing ${verifiedInterests.join(' & ')}` : '';
-        preamble = `${greetingPrefix}${prefs.destination} is a fantastic choice${matchingNote}! To help our travel designers curate the ideal ${prefs.destination} itinerary for you:`;
-      } else if (prefs.travelers) {
-        preamble = `${greetingPrefix}A wonderful trip for ${prefs.travelers === 1 ? 'a solo traveler' : prefs.travelers === 2 ? '2 travelers' : `${prefs.travelers} travelers`}${hasInterests ? ` to experience ${interestStr}` : ''}! To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}):`;
-      } else if (hasInterests) {
-        preamble = `${greetingPrefix}Experiencing ${interestStr} is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
-      } else if (styleStr) {
-        const stylePhrasing =
-          styleStr === 'romantic'
-            ? 'A romantic escape'
-            : styleStr === 'honeymoon'
-            ? 'A honeymoon getaway'
-            : `A ${styleStr} getaway`;
-        preamble = `${greetingPrefix}${stylePhrasing} is a wonderful journey. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
-      } else {
-        preamble = `${greetingPrefix}To help our travel designers curate the ideal itinerary for you from our official portfolio (${availableDestinations.join(', ')}), could you kindly share:`;
+      if (!hasDestination) {
+        if (hasInterests) {
+          fallbackPrompt = `${greetingPrefix}Experiencing ${interestStr} is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (${availableDestinations.join(', ')}), do you have a preferred destination in mind, or are you open to exploring domestic and international options?`;
+        } else if (styleStr) {
+          const stylePhrasing =
+            styleStr === 'romantic'
+              ? 'A romantic escape'
+              : styleStr === 'honeymoon'
+              ? 'A honeymoon getaway'
+              : `A ${styleStr} getaway`;
+          fallbackPrompt = `${greetingPrefix}${stylePhrasing} is a wonderful journey. Do you have a preferred destination in mind, or would you like recommendations from our curated portfolio (${availableDestinations.join(', ')})?`;
+        } else {
+          fallbackPrompt = `${greetingPrefix}Where are you thinking of traveling? Do you have a preferred destination in mind, or would you like to explore options from our curated portfolio (${availableDestinations.join(', ')})?`;
+        }
+      } else if (!hasBudget) {
+        if (prefs.destination) {
+          const matchingNote = verifiedInterests.length > 0 ? ` for experiencing ${verifiedInterests.join(' & ')}` : '';
+          fallbackPrompt = `${greetingPrefix}${prefs.destination} is a fantastic choice${matchingNote}! What is your approximate budget per person for this journey?`;
+        } else {
+          fallbackPrompt = `${greetingPrefix}Being open to exploring different destinations gives us wonderful flexibility! What is your approximate budget per person for this journey?`;
+        }
+      } else if (!hasTravelers) {
+        const destName = prefs.destination ? ` to ${prefs.destination}` : '';
+        fallbackPrompt = `${greetingPrefix}To help our travel designers tailor the accommodations${destName}, how many travelers will be journeying with you?`;
+      } else if (!hasDuration) {
+        const destName = prefs.destination ? ` in ${prefs.destination}` : '';
+        fallbackPrompt = `${greetingPrefix}How many days are you planning for your journey${destName}?`;
       }
-
-      const formattedQuestions = missingQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n');
-      fallbackPrompt = `${preamble}\n${formattedQuestions}`;
     }
 
     const qualifyMsg = assistantReply || fallbackPrompt;

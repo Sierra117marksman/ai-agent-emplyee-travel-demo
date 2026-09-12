@@ -83,26 +83,28 @@ export const qualifyLeadTool: AgentTool<CustomerPreferences, QualifyLeadResult> 
     }
 
     // Minimum qualification gate:
-    // Recommendation generation is permitted ONLY when the minimum required qualification state is satisfied.
-    // E.g. "I want a honeymoon trip." (style only, no dest, no budget) -> false
-    // E.g. "I want to see mountains." (interest only, no dest, no budget) -> false
-    // E.g. "Kashmir 15000 per person and 2 person" (dest + budget + pax) -> true
-    // E.g. "I don't care where, I just want mountains under ₹15k" (flexible dest + interest + budget) -> true
+    // Recommendation generation is permitted ONLY when the full required qualification state is satisfied:
+    // (destination || destinationFlexibility === 'yes') AND budgetPerPerson != null AND travelers != null AND durationDays != null.
+    // E.g. "I want a honeymoon trip." (style only) -> false
+    // E.g. "romantic" -> "Bali" (style + dest) -> false
+    // E.g. "romantic" -> "Bali" -> "₹45k" (style + dest + budget) -> false
+    // E.g. "romantic" -> "Bali" -> "₹45k" -> "2 travelers" (duration missing) -> false
+    // E.g. "Bali for two, 5 days, ₹45k per person" (all 4 slots) -> true
+    const hasCoreRequirements =
+      pref.budgetPerPerson != null &&
+      pref.travelers != null &&
+      pref.durationDays != null;
+
     const hasSufficientQualification = Boolean(
-      (pref.destination && pref.budgetPerPerson) ||
-      (pref.destination && (pref.durationDays || pref.tripStyle)) ||
-      (pref.budgetPerPerson && (pref.destination || pref.tripStyle || pref.travelers || pref.durationDays || pref.interests.length > 0 || pref.destinationFlexibility === 'yes'))
+      (pref.destination || pref.destinationFlexibility === 'yes') &&
+      hasCoreRequirements
     );
 
     const questions: string[] = [];
     if (!pref.destination && pref.destinationFlexibility !== 'yes') {
       questions.push('Do you have a preferred destination in mind, or are you open to exploring domestic and international journeys?');
-    }
-    if (!pref.budgetPerPerson) {
+    } else if (!pref.budgetPerPerson) {
       questions.push('What is your approximate budget per person for this journey?');
-    }
-    if (!pref.travelers && !pref.durationDays) {
-      questions.push('How many travelers will be joining and for how many days?');
     } else if (!pref.travelers) {
       questions.push('How many travelers will be journeying with you?');
     } else if (!pref.durationDays) {

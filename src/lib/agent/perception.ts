@@ -1,6 +1,7 @@
 import {
   TravelPackage,
-  DestinationFlexibility
+  DestinationFlexibility,
+  TRAVEL_PACKAGES
 } from '@/lib/packages';
 import {
   AgentMemory,
@@ -98,12 +99,17 @@ export function isNewTripInquiry(text: string): boolean {
   return /\b(?:i\s+(?:want|need|would\s+like)|we(?:'re|\s+are)\s+(?:planning|looking\s+for)|looking\s+for|plan(?:ning)?\s+(?:a|an|our)|interested\s+in)\b/i.test(lower);
 }
 
+export function isDestinationResetPhrase(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return /\b(?:actually\s+)?(?:anywhere\s+is\s+fine|anywhere|don't\s+care\s+where|wherever|any\s+destination(?:\s+is\s+fine)?|open\s+to\s+anywhere|open\s+to\s+exploring\s+anywhere|no\s+preference\s+(?:for|on)?\s*destination)\b/i.test(lower);
+}
+
 export function detectDestinationFlexibility(text: string): DestinationFlexibility {
   const lower = text.toLowerCase();
 
-  // Explicit openness indicators
+  // Explicit openness indicators (Notice: "other options" is an alternative query, NOT destination flexibility)
   if (
-    /\b(?:open\s+to\s+(?:other|any|all|different)\s+destinations?|open\s+to\s+(?:anything|anywhere|alternatives)|don't\s+care\s+where|anywhere|wherever|any\s+destination|other\s+options?|other\s+destinations?)\b/i.test(lower) ||
+    /\b(?:open\s+to\s+(?:other|any|all|different)\s+destinations?|open\s+to\s+(?:anything|anywhere|alternatives)|don't\s+care\s+where|anywhere|wherever|any\s+destination|other\s+destinations?)\b/i.test(lower) ||
     /\b(?:somewhere\s+in\s+india|anywhere\s+in\s+india)\b/i.test(lower)
   ) {
     return 'yes';
@@ -845,15 +851,32 @@ export function detectConflictsAndAmbiguities(
     });
   }
 
-  // 3. Financial Contradiction (Cat F): "Maldives under 10k", "Europe for 20k total"
-  if (destinationName && calculatedBudget) {
-    if (destinationName.toLowerCase() === 'maldives' && calculatedBudget <= 15000) {
+  // 3. Financial Contradiction (Cat F): "Maldives under 10k", "Kashmir under 15k", or budget below catalog minimum
+  if (calculatedBudget) {
+    const minCatalogPrice = Math.min(...TRAVEL_PACKAGES.map((p) => p.pricePerPerson));
+    if (calculatedBudget < minCatalogPrice) {
       conflict = {
         detected: true,
         type: 'financial',
-        reason: 'Maldives luxury escapes start at ₹79,999/person, which conflicts with a ₹15,000 target budget.',
-        explanation: 'Our curated Maldives overwater lagoon sanctuaries start at ₹79,999 per person. We cannot offer a Maldives package within this budget.'
+        reason: `Our curated portfolio journeys begin at ₹${minCatalogPrice.toLocaleString('en-IN')}/person, which conflicts with a ₹${calculatedBudget.toLocaleString('en-IN')} target budget.`,
+        explanation: `Our curated portfolio journeys begin at ₹${minCatalogPrice.toLocaleString('en-IN')} per person (Kerala Backwaters & Munnar Mist). A budget of ₹${calculatedBudget.toLocaleString('en-IN')} is below our catalog tier. Would you like to adjust your budget, or explore other destinations within our official portfolio?`
       };
+    } else if (destinationName) {
+      const destPackages = TRAVEL_PACKAGES.filter(
+        (p) => p.destination.toLowerCase().includes(destinationName.toLowerCase()) ||
+               p.country.toLowerCase() === destinationName.toLowerCase()
+      );
+      if (destPackages.length > 0) {
+        const minDestPrice = Math.min(...destPackages.map((p) => p.pricePerPerson));
+        if (calculatedBudget < minDestPrice) {
+          conflict = {
+            detected: true,
+            type: 'financial',
+            reason: `${destinationName} journeys start at ₹${minDestPrice.toLocaleString('en-IN')}/person, which conflicts with a ₹${calculatedBudget.toLocaleString('en-IN')} target budget.`,
+            explanation: `Our curated ${destinationName} journeys start at ₹${minDestPrice.toLocaleString('en-IN')} per person. We do not currently offer a ${destinationName} package within ₹${calculatedBudget.toLocaleString('en-IN')} per person. Would you like to consider expanding your budget, or explore other destinations within our official portfolio?`
+          };
+        }
+      }
     }
   }
 
@@ -889,28 +912,44 @@ export function resolveEllipsis(
   if (!lastAssistantQuestion) return null;
   const qLower = lastAssistantQuestion.toLowerCase();
 
+  // Shield against currency and budget expressions being misinterpreted as duration or travelers
+  const hasBudgetMarker =
+    /\b(?:k|thousand|lakh|₹|rs\.?|inr|budget|per\s+person|\/pax|\/person)\b/i.test(lower) ||
+    /^\d{1,3}k$/i.test(lower) ||
+    /^(?:₹|rs\.?)?\s*\d{4,7}$/i.test(lower.replace(/,/g, ''));
+
+  if (hasBudgetMarker) {
+    if (qLower.includes('budget') || /^(?:₹|rs\.?)?\s*\d{1,3}k?$/i.test(lower) || /^\d{4,6}$/.test(lower.replace(/,/g, ''))) {
+      const budgetVal = extractBudgetFromText(lower);
+      if (budgetVal) {
+        return { field: 'budget', action: 'set', value: budgetVal, reason: 'Contextual ellipsis slot-filling for budget' };
+      }
+    }
+    return null; // Strict shield: budget expressions must NEVER resolve as duration or travelers!
+  }
+
   // If assistant asked for duration, and user says "Four" or "4" (and not "4 travelers")
   if (
     (qLower.includes('how many days') || qLower.includes('duration') || qLower.includes('how long')) &&
     !/\b(?:travelers?|travellers?|people|persons?|pax|adults?|kids?)\b/i.test(lower)
   ) {
-    const num = parseInt(lower, 10);
+    const numMatch = lower.match(/^(\d{1,2})\s*(?:days?|nights?)?$/);
     const words: Record<string, number> = { three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, ten: 10 };
-    const days = !isNaN(num) ? num : words[lower];
-    if (days) {
+    const days = numMatch ? parseInt(numMatch[1], 10) : words[lower];
+    if (days && days <= 60) {
       return { field: 'duration', action: 'set', value: days, reason: 'Contextual ellipsis slot-filling for duration' };
     }
   }
 
   // If assistant asked for travelers, and user says "Two" (and not "2 days")
   if (
-    (qLower.includes('how many travelers') || qLower.includes('how many people')) &&
+    (qLower.includes('how many travelers') || qLower.includes('how many people') || qLower.includes('journeying with you')) &&
     !/\b(?:days?|nights?)\b/i.test(lower)
   ) {
-    const num = parseInt(lower, 10);
+    const numMatch = lower.match(/^(\d{1,2})\s*(?:people|persons?|travelers?|travellers?|pax|adults?)?$/);
     const words: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
-    const travelers = !isNaN(num) ? num : words[lower];
-    if (travelers) {
+    const travelers = numMatch ? parseInt(numMatch[1], 10) : words[lower];
+    if (travelers && travelers <= 30) {
       return { field: 'travelers', action: 'set', value: travelers, reason: 'Contextual ellipsis slot-filling for travelers' };
     }
   }
@@ -1111,21 +1150,30 @@ export function perceiveTurn(
         return dRegex.test(msg.content);
       });
 
-      if (surfaced.length > 0) {
+      if (surfaced.length > 1) {
         memory.conversation.lastSurfacedPackages = [...surfaced];
         memory.conversation.lastSurfacedOptions = surfaced.map((p) => p.name);
       } else if (surfacedDests.length > 1) {
         memory.conversation.lastSurfacedOptions = surfacedDests;
+        if (surfaced.length > 0) {
+          memory.conversation.lastSurfacedPackages = [...surfaced];
+        }
+      } else if (surfaced.length > 0) {
+        memory.conversation.lastSurfacedPackages = [...surfaced];
+        memory.conversation.lastSurfacedOptions = surfaced.map((p) => p.name);
       }
 
       // Detect if prior turn had resolution failure (budget conflict / no matching packages / objection loop)
       const lowerContent = msg.content.toLowerCase();
       if (
         lowerContent.includes('do not currently have') ||
+        lowerContent.includes('do not currently offer') ||
         lowerContent.includes('starts at') ||
+        lowerContent.includes('start at') ||
         lowerContent.includes('constraint conflict') ||
         lowerContent.includes('adjust your budget') ||
         lowerContent.includes('beyond your budget') ||
+        lowerContent.includes('below our catalog tier') ||
         lowerContent.includes('comfortable with for this')
       ) {
         memory.conversation.resolutionFailureCount = (memory.conversation.resolutionFailureCount || 0) + 1;
@@ -1233,6 +1281,15 @@ export function perceiveTurn(
     }
     if (interestResult.excludedInterests.length > 0) {
       memory.customer.preferences.excludedInterests = Array.from(new Set([...memory.customer.preferences.excludedInterests, ...interestResult.excludedInterests]));
+      memory.customer.preferences.interests = memory.customer.preferences.interests.filter(
+        (i) => !interestResult.excludedInterests.includes(i)
+      );
+      accumulatedMutations.push({
+        field: 'interests',
+        action: 'replace',
+        value: memory.customer.preferences.interests,
+        reason: `Purged excluded interests: ${interestResult.excludedInterests.join(', ')}`
+      });
     }
 
     // 6. Extract Destination Entities & Hierarchy (Cat B, D, N, T, AA)
@@ -1285,12 +1342,23 @@ export function perceiveTurn(
       memory.customer.preferences.durationDays = durationResult.duration.days;
     }
 
-    // 10. Destination Flexibility
-    const flex = detectDestinationFlexibility(text);
-    if (flex !== 'unknown') {
-      memory.customer.preferences.destinationFlexibility = flex;
-    } else if (destResult.destination?.locked) {
-      memory.customer.preferences.destinationFlexibility = 'no';
+    // 10. Destination Flexibility & Explicit Reset
+    if (isDestinationResetPhrase(text)) {
+      memory.customer.preferences.destination = null;
+      memory.customer.preferences.destinationFlexibility = 'yes';
+      accumulatedMutations.push({
+        field: 'destination',
+        action: 'replace',
+        value: null,
+        reason: 'Customer explicitly stated destination is flexible / anywhere is fine'
+      });
+    } else {
+      const flex = detectDestinationFlexibility(text);
+      if (flex !== 'unknown') {
+        memory.customer.preferences.destinationFlexibility = flex;
+      } else if (destResult.destination?.locked) {
+        memory.customer.preferences.destinationFlexibility = 'no';
+      }
     }
 
     // 11. Domestic Flag

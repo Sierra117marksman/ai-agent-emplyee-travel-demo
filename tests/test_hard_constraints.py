@@ -80,10 +80,10 @@ check("Case C - Thailand is NOT suggested", all('thailand' not in p['name'].lowe
 check("Case C - Arjun explains Kashmir starts at 38,500 or exceeds budget", '38,500' in msg_c or '38500' in msg_c or 'exceeds' in msg_c.lower() or 'portfolio' in msg_c.lower(), f"msg: {msg_c}")
 
 # ----------------------------------------------------
-# TEST CASE D: "Kashmir, ₹40,000 per person, 2 people"
+# TEST CASE D: "Kashmir, ₹40,000 per person, 2 people for 5 days"
 # ----------------------------------------------------
-print("\n--- CASE D: 'Kashmir, ₹40,000 per person, 2 people' ---")
-r_d = post_chat([{'role': 'user', 'content': 'Kashmir, ₹40,000 per person, 2 people'}])
+print("\n--- CASE D: 'Kashmir, ₹40,000 per person, 2 people for 5 days' ---")
+r_d = post_chat([{'role': 'user', 'content': 'Kashmir, ₹40,000 per person, 2 people for 5 days'}])
 lead_d = r_d.get('extractedLead', {})
 pkgs_d = r_d.get('suggestedPackages', [])
 

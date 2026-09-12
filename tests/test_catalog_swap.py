@@ -212,6 +212,29 @@ export function getAllAvailableDestinations(): string[] {
 export function getValidDestinationsString(): string {
   return getAllAvailableDestinations().join(', ');
 }
+
+export function getDestinationMatchingInterests(
+  destination: string | null | undefined,
+  customerInterests: string[]
+): string[] {
+  if (!destination || !customerInterests || customerInterests.length === 0) return [];
+  const destLower = destination.toLowerCase().trim();
+  const destPkgs = TRAVEL_PACKAGES.filter(
+    (p) =>
+      p.destination.toLowerCase().includes(destLower) ||
+      p.country.toLowerCase().includes(destLower)
+  );
+  if (destPkgs.length === 0) return [];
+
+  return customerInterests.filter((interest) => {
+    const iLower = interest.toLowerCase().trim();
+    return destPkgs.some(
+      (pkg) =>
+        pkg.interests.some((catInt) => catInt.toLowerCase() === iLower) ||
+        pkg.category.toLowerCase() === iLower
+    );
+  });
+}
 '''
 
 def post_chat(messages):

@@ -355,18 +355,7 @@ function generateQuickRepliesInternal(context: QuickReplyContext): QuickReply[] 
     return destChips;
   }
 
-  // Step C: If travelers count is missing -> Offer semantic traveler options
-  if (!hasTravelers) {
-    return [
-      { type: 'traveler_group', label: '🙋 Solo', value: '1 traveler' },
-      { type: 'traveler_group', label: '❤️ Couple', value: '2 travelers' },
-      { type: 'traveler_group', label: '👨‍👩‍👧 Family', value: 'Family of 4' },
-      { type: 'traveler_group', label: '👥 Friends', value: 'Group of 4 friends' },
-      { type: 'free_text', label: '💬 Other group', value: 'type_travelers' }
-    ];
-  }
-
-  // Step D: If budget is missing -> Offer dynamic budget tiers computed from catalog pricing
+  // Step C: If budget is missing -> Offer dynamic budget tiers computed from catalog pricing
   if (!hasBudget) {
     // Filter packages matching chosen destination if specified
     const relevantPackages = prefs.destination
@@ -407,6 +396,17 @@ function generateQuickRepliesInternal(context: QuickReplyContext): QuickReply[] 
     });
 
     return budgetChips;
+  }
+
+  // Step D: If travelers count is missing -> Offer semantic traveler options
+  if (!hasTravelers) {
+    return [
+      { type: 'traveler_group', label: '🙋 Solo', value: '1 traveler' },
+      { type: 'traveler_group', label: '❤️ Couple', value: '2 travelers' },
+      { type: 'traveler_group', label: '👨‍👩‍👧 Family', value: 'Family of 4' },
+      { type: 'traveler_group', label: '👥 Friends', value: 'Group of 4 friends' },
+      { type: 'free_text', label: '💬 Other group', value: 'type_travelers' }
+    ];
   }
 
   // Step E: If duration is missing -> Offer dynamic duration options derived from catalog

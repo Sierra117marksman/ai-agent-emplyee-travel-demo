@@ -103,7 +103,7 @@ check("Kashmir (mountain destination) is offered in destination chips", any('Kas
 check("Includes '🌎 Anywhere' chip", any('Anywhere' in l for l in m_labels))
 check("Includes '💬 Type a destination' chip", any('Type a destination' in l for l in m_labels))
 
-# Step 3B: Visitor selects destination "Kashmir" -> Quick replies should offer traveler chips
+# Step 3B: Visitor selects destination "Kashmir" -> Quick replies should offer dynamic budget tiers
 r_kashmir = post_chat([
     {'role': 'user', 'content': 'mountains'},
     {'role': 'assistant', 'content': r_mountains.get('message', '')},
@@ -116,38 +116,57 @@ k_labels = [q.get('label') for q in qr_kashmir]
 k_values = [q.get('value') for q in qr_kashmir]
 
 check("Destination 'Kashmir' is extracted in world state", lead_kashmir.get('destination') == 'Kashmir')
-check("Next question offers traveler chips", 'traveler_group' in k_types, f"types: {k_types}")
-check("Traveler options include 'Couple' and 'Solo'", any('Couple' in l for l in k_labels) and any('Solo' in l for l in k_labels))
+check("Next question offers dynamic budget chips", 'budget' in k_types, f"types: {k_types}")
+check("Budget chip values end with 'per person'", all('per person' in q.get('value') for q in qr_kashmir if q.get('type') == 'budget'))
 
-# Step 3C: Visitor selects traveler chip "❤️ Couple" (semantic value: "2 travelers") -> Quick replies should offer dynamic budget tiers
-r_couple = post_chat([
-    {'role': 'user', 'content': 'mountains'},
-    {'role': 'assistant', 'content': r_mountains.get('message', '')},
-    {'role': 'user', 'content': 'Kashmir'},
-    {'role': 'assistant', 'content': r_kashmir.get('message', '')},
-    {'role': 'user', 'content': '2 travelers'}
-])
-lead_couple = r_couple.get('extractedLead', {})
-qr_couple = r_couple.get('quickReplies', [])
-c_types = [q.get('type') for q in qr_couple]
-c_values = [q.get('value') for q in qr_couple]
-
-check("Travelers 2 is extracted in world state", lead_couple.get('travelers') == 2)
-check("Next question offers dynamic budget chips", 'budget' in c_types, f"types: {c_types}")
-check("Budget chip values end with 'per person'", all('per person' in q.get('value') for q in qr_couple if q.get('type') == 'budget'))
-
-# Step 3D: Visitor selects budget "40000 per person" -> System qualifies and recommends packages!
+# Step 3C: Visitor selects budget "40000 per person" -> Quick replies should offer semantic traveler options
 r_budget = post_chat([
     {'role': 'user', 'content': 'mountains'},
     {'role': 'assistant', 'content': r_mountains.get('message', '')},
     {'role': 'user', 'content': 'Kashmir'},
     {'role': 'assistant', 'content': r_kashmir.get('message', '')},
-    {'role': 'user', 'content': '2 travelers'},
-    {'role': 'assistant', 'content': r_couple.get('message', '')},
     {'role': 'user', 'content': '40000 per person'}
 ])
-pkgs_rec = r_budget.get('suggestedPackages', [])
-qr_rec = r_budget.get('quickReplies', [])
+lead_budget = r_budget.get('extractedLead', {})
+qr_budget = r_budget.get('quickReplies', [])
+b_types = [q.get('type') for q in qr_budget]
+b_labels = [q.get('label') for q in qr_budget]
+
+check("Budget 40000 is extracted in world state", lead_budget.get('budgetPerPerson') == 40000)
+check("Next question offers traveler chips", 'traveler_group' in b_types, f"types: {b_types}")
+check("Traveler options include 'Couple' and 'Solo'", any('Couple' in l for l in b_labels) and any('Solo' in l for l in b_labels))
+
+# Step 3D: Visitor selects traveler chip "❤️ Couple" (semantic value: "2 travelers") -> Quick replies should offer duration options
+r_couple = post_chat([
+    {'role': 'user', 'content': 'mountains'},
+    {'role': 'assistant', 'content': r_mountains.get('message', '')},
+    {'role': 'user', 'content': 'Kashmir'},
+    {'role': 'assistant', 'content': r_kashmir.get('message', '')},
+    {'role': 'user', 'content': '40000 per person'},
+    {'role': 'assistant', 'content': r_budget.get('message', '')},
+    {'role': 'user', 'content': '2 travelers'}
+])
+lead_couple = r_couple.get('extractedLead', {})
+qr_couple = r_couple.get('quickReplies', [])
+c_types = [q.get('type') for q in qr_couple]
+
+check("Travelers 2 is extracted in world state", lead_couple.get('travelers') == 2)
+check("Next question offers duration chips", 'duration' in c_types, f"types: {c_types}")
+
+# Step 3E: Visitor selects duration "5 days" -> System qualifies and recommends packages!
+r_duration = post_chat([
+    {'role': 'user', 'content': 'mountains'},
+    {'role': 'assistant', 'content': r_mountains.get('message', '')},
+    {'role': 'user', 'content': 'Kashmir'},
+    {'role': 'assistant', 'content': r_kashmir.get('message', '')},
+    {'role': 'user', 'content': '40000 per person'},
+    {'role': 'assistant', 'content': r_budget.get('message', '')},
+    {'role': 'user', 'content': '2 travelers'},
+    {'role': 'assistant', 'content': r_couple.get('message', '')},
+    {'role': 'user', 'content': '5 days'}
+])
+pkgs_rec = r_duration.get('suggestedPackages', [])
+qr_rec = r_duration.get('quickReplies', [])
 check("Recommendations produced for qualified customer", len(pkgs_rec) > 0, f"got {len(pkgs_rec)} pkgs")
 check("Quick replies offer booking action chips for recommended package", 
       any('Token' in q.get('label', '') or 'Book' in q.get('label', '') for q in qr_rec),

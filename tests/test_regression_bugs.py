@@ -77,7 +77,7 @@ print("==================================================")
 
 # 4. Multi-turn Bug 2: Price objection after recommendations
 multi_turn_b2_turn1 = [
-    {'role': 'user', 'content': 'We are looking for an adventure trip somewhere in India for 4 people with ₹35k budget.'}
+    {'role': 'user', 'content': 'We are looking for an adventure trip somewhere in India for 4 people with ₹35k budget for 5 days.'}
 ]
 r_b2_t1 = post_chat(multi_turn_b2_turn1)
 p_b2_t1 = r_b2_t1.get('suggestedPackages', [])
@@ -85,7 +85,7 @@ check("Bug 2 Turn 1 - produces recommendations", len(p_b2_t1) > 0)
 
 # Turn 2: 'your price is too high'
 multi_turn_b2_turn2 = [
-    {'role': 'user', 'content': 'We are looking for an adventure trip somewhere in India for 4 people with ₹35k budget.'},
+    {'role': 'user', 'content': 'We are looking for an adventure trip somewhere in India for 4 people with ₹35k budget for 5 days.'},
     {'role': 'assistant', 'content': r_b2_t1.get('message', '')},
     {'role': 'user', 'content': 'your price is too high'}
 ]

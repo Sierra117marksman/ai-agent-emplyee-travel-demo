@@ -1,5 +1,50 @@
 [
   {
+    "id": "lead_1789225804178_u57b1",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T15:10:04.179Z",
+    "updatedAt": "2026-09-12T15:10:05.716Z",
+    "razorpayOrderId": "order_TbAatDrI8jzfMf",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  },
+  {
+    "id": "lead_1789225612208_uc3hz",
+    "customerName": "Test User",
+    "customerPhone": "9876543210",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "TOKEN_PENDING",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T15:06:52.208Z",
+    "updatedAt": "2026-09-12T15:06:53.809Z",
+    "razorpayOrderId": "order_TbAXVegMyuQbIM"
+  },
+  {
     "id": "lead_1789197157789_kv07a",
     "customerName": "Prospective Traveler",
     "customerPhone": "",
@@ -268,6 +313,250 @@
     "createdAt": "2026-09-12T05:41:29.726Z",
     "updatedAt": "2026-09-12T05:41:29.945Z",
     "razorpayOrderId": "order_Tb0uGooKPSzEVz",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  },
+  {
+    "id": "lead_1789226232795_0m7lh",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T15:17:12.797Z",
+    "updatedAt": "2026-09-12T15:17:16.304Z",
+    "razorpayOrderId": "order_TbAiTEX7ncaKRT",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  },
+  {
+    "id": "lead_1789226566656_qxaj2",
+    "customerName": "Prospective Traveler",
+    "customerPhone": "",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 0,
+    "budgetPerPerson": 0,
+    "tripStyle": "General",
+    "tokenAmount": 0,
+    "currency": "INR",
+    "status": "QUALIFIED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun Patel, your Senior Travel Sales Specialist & Concierge. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "beaches",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Experiencing beaches is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Kashmir",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Kashmir is a fantastic choice for experiencing beaches! To help our travel designers curate the ideal itinerary for you from our official portfolio:\n1. What is your approximate budget per person?\n2. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      }
+    ],
+    "createdAt": "2026-09-12T15:22:55.975Z",
+    "updatedAt": "2026-09-12T15:22:55.975Z"
+  },
+  {
+    "id": "lead_1789227016977_qowj4",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T15:30:16.977Z",
+    "updatedAt": "2026-09-12T15:30:18.444Z",
+    "razorpayOrderId": "order_TbAwEreYd8pJR2",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  },
+  {
+    "id": "lead_1789227440278_f9kr5",
+    "customerName": "Prospective Traveler",
+    "customerPhone": "",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 4,
+    "budgetPerPerson": 0,
+    "tripStyle": "family",
+    "tokenAmount": 0,
+    "currency": "INR",
+    "status": "QUALIFIED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun Patel, your Senior Travel Sales Specialist & Concierge. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "beaches",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Experiencing beaches is a wonderful way to travel. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Kashmir",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Kashmir is a fantastic choice! To help our travel designers curate the ideal Kashmir itinerary for you:\n1. What is your approximate budget per person?\n2. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Family of 4",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here is our recommended itinerary from our catalog:\n\n• **Kashmir Valley & Houseboat Bliss** (6 Days / 5 Nights — ₹38,500/person)\n  *Snow-capped Himalayan peaks, fragrant pine meadows, Gulmarg alpine gondolas, and timeless Dal Lake romance.*\n\nThis journey includes private luxury accommodations, dedicated chauffeur transfers, and bespoke concierge access. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior travel designer will contact you to finalize flights and custom details. Would you like to proceed with this journey?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Show me other options",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here are our recommended itineraries from our catalog:\n\n• **Kashmir Valley & Houseboat Bliss** (6 Days / 5 Nights — ₹38,500/person)\n  *Snow-capped Himalayan peaks, fragrant pine meadows, Gulmarg alpine gondolas, and timeless Dal Lake romance.*\n\n• **Thailand Island Hopping & Phuket** (6 Days / 5 Nights — ₹39,999/person)\n  *Speedboat island expeditions, turquoise snorkeling lagoons, dramatic limestone karsts, and nightlife.*\n\nAll itineraries include private luxury accommodations, dedicated chauffeur transfers, and bespoke concierge access. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior travel designer will contact you to finalize flights and custom details. Which one would you prefer?",
+        "timestamp": "Just now"
+      }
+    ],
+    "createdAt": "2026-09-12T15:37:52.639Z",
+    "updatedAt": "2026-09-12T15:37:52.639Z"
+  },
+  {
+    "id": "lead_1789227480536_rbci1",
+    "customerName": "Prospective Traveler",
+    "customerPhone": "",
+    "customerEmail": "",
+    "destination": "Bali",
+    "travelDates": "Flexible",
+    "travelers": 0,
+    "budgetPerPerson": 0,
+    "tripStyle": "romantic",
+    "tokenAmount": 0,
+    "currency": "INR",
+    "status": "QUALIFIED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun Patel, your Senior Travel Sales Specialist & Concierge. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "romantic",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "A romantic escape is a wonderful journey. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to exploring domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Bali",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here is our recommended itinerary from our catalog:\n\n• **Bali Romantic Villa Escape** (5 Days / 4 Nights — ₹44,999/person)\n  *Designed for couples, blending the mist-shrouded jungle serenity of Ubud with vibrant beachfront sunsets in Seminyak.*\n\nThis journey includes private luxury accommodations, dedicated chauffeur transfers, and bespoke concierge access. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior travel designer will contact you to finalize flights and custom details. Would you like to proceed with this journey?",
+        "timestamp": "Just now"
+      }
+    ],
+    "createdAt": "2026-09-12T15:38:24.382Z",
+    "updatedAt": "2026-09-12T15:38:24.382Z"
+  },
+  {
+    "id": "lead_1789229579027_6qq61",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T16:12:59.027Z",
+    "updatedAt": "2026-09-12T16:13:00.409Z",
+    "razorpayOrderId": "order_TbBfLhcU9rpjdL",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  },
+  {
+    "id": "lead_1789231281258_6oaz5",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T16:41:21.258Z",
+    "updatedAt": "2026-09-12T16:41:22.167Z",
+    "razorpayOrderId": "order_TbC9JHFgDcvuOg",
     "razorpayPaymentId": "pay_AutomatedTestVerified_888"
   }
 ]
