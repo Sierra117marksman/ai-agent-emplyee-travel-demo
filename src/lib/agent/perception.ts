@@ -67,6 +67,14 @@ export function isPriceObjection(text: string): boolean {
 }
 
 // =========================================================================
+// HUMAN HANDOFF REQUEST DETECTOR
+// =========================================================================
+export function isHumanHandoffRequest(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return /\b(?:give\s+me\s+a\s+human|talk\s+to\s+(?:a\s+)?(?:human|person|agent|someone|real\s+person)|speak\s+(?:to|with)\s+(?:a\s+)?(?:human|agent|person|someone)|connect\s+me\s+(?:to|with)\s+(?:a\s+)?(?:human|agent|person|someone)|i\s+(?:want|need|would\s+like)\s+(?:to\s+speak|to\s+talk)\s+(?:to|with)\s+(?:a\s+)?(?:human|agent|person|someone)|can\s+(?:i|someone)\s+(?:talk|speak)\s+(?:to|with)\s+(?:a\s+)?(?:human|agent|person)|human\s+please|real\s+person|i\s+don.t\s+want\s+(?:to\s+talk\s+to\s+a\s+|a\s+)?bot|human\s+agent|want\s+a\s+human|need\s+a\s+human|can\s+someone\s+call\s+me|request\s+a\s+call|call\s+(?:me|us)\s+back)\b/i.test(lower);
+}
+
+// =========================================================================
 // 3. TRIP STYLE & NEW INQUIRY DETECTOR (Bug 1 Protection)
 // =========================================================================
 export function detectTripStyle(text: string): string | null {
@@ -1061,6 +1069,7 @@ export function perceiveTurn(
       missingFields: ['destination', 'budget', 'travelers', 'duration'],
       unsupportedDestination: null,
       turnCount: messages.length,
+      resolutionFailureCount: 0,
       lastSurfacedPackages: [],
       lastSurfacedOptions: [],
       lastAssistantQuestion: null,
@@ -1071,6 +1080,7 @@ export function perceiveTurn(
       selectedPackageId: null,
       selectedPackageTitle: null,
       leadStatus: 'NEW',
+      activeHandoffId: null,
       tokenOrderId: null,
       tokenPaymentId: null,
       tokenAmount: standardTokenAmount
@@ -1106,6 +1116,27 @@ export function perceiveTurn(
       } else if (surfacedDests.length > 1) {
         memory.conversation.lastSurfacedOptions = surfacedDests;
       }
+
+      // Detect if prior turn had resolution failure (budget conflict / no matching packages / objection loop)
+      const lowerContent = msg.content.toLowerCase();
+      if (
+        lowerContent.includes('do not currently have') ||
+        lowerContent.includes('starts at') ||
+        lowerContent.includes('constraint conflict') ||
+        lowerContent.includes('adjust your budget') ||
+        lowerContent.includes('beyond your budget') ||
+        lowerContent.includes('comfortable with for this')
+      ) {
+        memory.conversation.resolutionFailureCount = (memory.conversation.resolutionFailureCount || 0) + 1;
+      }
+
+      // Detect if an active handoff was already initiated previously (Idempotency)
+      const handoffMatch = msg.content.match(/HANDOFF-\d+-[A-Z0-9]+/);
+      if (handoffMatch) {
+        memory.business.activeHandoffId = handoffMatch[0];
+        memory.business.leadStatus = 'HUMAN_HANDOFF';
+      }
+
       continue;
     }
 
@@ -1347,6 +1378,7 @@ export function perceiveTurn(
     mutations: accumulatedMutations,
     evidenceTrace: accumulatedEvidence,
     isPriceObjection: memory.conversation.isPriceObjectionActive,
+    isHumanHandoffRequest: isHumanHandoffRequest(latestUserText),
     isCustomTokenAttempt: isCustomToken,
     isUnverifiedPaymentClaim: isUnverifiedPayment,
     isBookingIntent: bookingInfo.isBooking,

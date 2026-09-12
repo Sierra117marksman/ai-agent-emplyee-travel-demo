@@ -5,7 +5,7 @@ import {
   DestinationFlexibility,
   AlternativePackage
 } from '@/lib/packages';
-import { AgentTool, CustomerPreferences } from './types';
+import { AgentTool, CustomerPreferences, HandoffReason, HandoffDossier } from './types';
 
 // Tool 1: search_packages
 export interface SearchPackagesInput {
@@ -178,24 +178,112 @@ export const prepareBookingTokenTool: AgentTool<PrepareBookingTokenInput, Prepar
 // Tool 6: escalate_to_desk
 export interface EscalateToDeskInput {
   reason: string;
+  handoffReason?: HandoffReason;
   destination?: string | null;
   customerNotes?: string;
+  dossierData?: {
+    customerName: string | null;
+    customerPhone: string | null;
+    customerEmail: string | null;
+    destination: string | null;
+    budgetPerPerson: number | null;
+    travelers: number | null;
+    interests: string[];
+    durationDays: number | null;
+    packagesShown: string[];
+    customerObjections: string[];
+    chatTranscript: { role: string; content: string }[];
+  };
 }
 
 export interface EscalateToDeskResult {
   escalated: boolean;
+  isExistingHandoff: boolean;
+  handoffId: string;
   department: string;
   referenceNotes: string;
+  dossier: HandoffDossier;
 }
 
 export const escalateToDeskTool: AgentTool<EscalateToDeskInput, EscalateToDeskResult> = {
   name: 'escalate_to_desk',
-  description: 'Escalate uncataloged or custom bespoke inquiries to human concierge desk.',
-  execute: async (input) => {
+  description: 'Escalate to human travel specialist. Idempotent — one active handoff per conversation.',
+  execute: async (input, memory) => {
+    const specialistPhone = process.env.TRAVEL_SPECIALIST_PHONE || '';
+
+    // Idempotency guard: return existing handoff if already created
+    if (memory.business.activeHandoffId) {
+      const existingDossier: HandoffDossier = {
+        handoffId: memory.business.activeHandoffId,
+        reason: (input.handoffReason || 'unsupported_request') as HandoffReason,
+        priority: 'MEDIUM',
+        customerName: input.dossierData?.customerName ?? null,
+        customerPhone: input.dossierData?.customerPhone ?? null,
+        customerEmail: input.dossierData?.customerEmail ?? null,
+        destination: input.dossierData?.destination ?? null,
+        budgetPerPerson: input.dossierData?.budgetPerPerson ?? null,
+        travelers: input.dossierData?.travelers ?? null,
+        interests: input.dossierData?.interests ?? [],
+        durationDays: input.dossierData?.durationDays ?? null,
+        escalationReason: input.reason,
+        packagesShown: input.dossierData?.packagesShown ?? [],
+        customerObjections: input.dossierData?.customerObjections ?? [],
+        chatTranscript: input.dossierData?.chatTranscript ?? [],
+        specialistPhone,
+        createdAt: new Date().toISOString(),
+      };
+      return {
+        escalated: true,
+        isExistingHandoff: true,
+        handoffId: memory.business.activeHandoffId,
+        department: 'Senior Travel Concierge & Bespoke Charters Desk',
+        referenceNotes: `Existing handoff: ${memory.business.activeHandoffId}`,
+        dossier: existingDossier,
+      };
+    }
+
+    const handoffId = `HANDOFF-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    // Determine priority
+    const reason = input.handoffReason || 'unsupported_request';
+    const priority: 'HIGH' | 'MEDIUM' | 'LOW' =
+      reason === 'customer_requested' || reason === 'payment_issue' || reason === 'refund'
+        ? 'HIGH'
+        : reason === 'repeated_failed_resolution' || reason === 'custom_itinerary'
+        ? 'MEDIUM'
+        : 'LOW';
+
+    const dossier: HandoffDossier = {
+      handoffId,
+      reason,
+      priority,
+      customerName: input.dossierData?.customerName ?? null,
+      customerPhone: input.dossierData?.customerPhone ?? null,
+      customerEmail: input.dossierData?.customerEmail ?? null,
+      destination: input.dossierData?.destination ?? null,
+      budgetPerPerson: input.dossierData?.budgetPerPerson ?? null,
+      travelers: input.dossierData?.travelers ?? null,
+      interests: input.dossierData?.interests ?? [],
+      durationDays: input.dossierData?.durationDays ?? null,
+      escalationReason: input.reason,
+      packagesShown: input.dossierData?.packagesShown ?? [],
+      customerObjections: input.dossierData?.customerObjections ?? [],
+      chatTranscript: input.dossierData?.chatTranscript ?? [],
+      specialistPhone,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Mutate memory
+    memory.business.leadStatus = 'HUMAN_HANDOFF';
+    memory.business.activeHandoffId = handoffId;
+
     return {
       escalated: true,
+      isExistingHandoff: false,
+      handoffId,
       department: 'Senior Travel Concierge & Bespoke Charters Desk',
-      referenceNotes: `Escalation Reason: ${input.reason} | Destination: ${input.destination || 'Unspecified'}`
+      referenceNotes: `Handoff #${handoffId} | Reason: ${input.reason} | Dest: ${input.destination || 'Unspecified'}`,
+      dossier,
     };
   }
 };

@@ -67,6 +67,7 @@ export default function AdminCrmClient({ initialLeads }: AdminCrmClientProps) {
       statusFilter === 'ALL' ||
       (statusFilter === 'CONFIRMED' && (lead.status === 'BOOKING_CONFIRMED' || lead.status === 'TOKEN_PAID')) ||
       (statusFilter === 'PENDING' && lead.status === 'TOKEN_PENDING') ||
+      (statusFilter === 'HANDOFF' && (lead.status === 'HUMAN_HANDOFF' || lead.status === 'HUMAN_RESOLVING')) ||
       (statusFilter === 'QUALIFIED' && lead.status === 'QUALIFIED');
 
     return matchesSearch && matchesStatus;
@@ -190,6 +191,7 @@ export default function AdminCrmClient({ initialLeads }: AdminCrmClientProps) {
               { id: 'ALL', label: 'All Leads' },
               { id: 'CONFIRMED', label: 'Token Paid ✓' },
               { id: 'PENDING', label: 'Token Pending' },
+              { id: 'HANDOFF', label: 'Human Handoff 👤' },
               { id: 'QUALIFIED', label: 'Qualified Only' }
             ].map((f) => (
               <button
@@ -241,6 +243,11 @@ export default function AdminCrmClient({ initialLeads }: AdminCrmClientProps) {
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800 whitespace-nowrap">
                         <Clock className="w-3 h-3 text-amber-400" />
                         <span>PENDING</span>
+                      </span>
+                    ) : lead.status === 'HUMAN_HANDOFF' || lead.status === 'HUMAN_RESOLVING' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-950 text-orange-300 border border-orange-800 whitespace-nowrap">
+                        <span>👤</span>
+                        <span>{lead.status === 'HUMAN_RESOLVING' ? 'RESOLVING' : 'HANDOFF'}</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800 whitespace-nowrap">
@@ -396,6 +403,11 @@ export default function AdminCrmClient({ initialLeads }: AdminCrmClientProps) {
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-950 text-amber-300 border border-amber-800">
                             <Clock className="w-3 h-3 text-amber-400" />
                             <span>TOKEN PENDING</span>
+                          </span>
+                        ) : lead.status === 'HUMAN_HANDOFF' || lead.status === 'HUMAN_RESOLVING' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-950 text-orange-300 border border-orange-800">
+                            <span>👤</span>
+                            <span>{lead.status === 'HUMAN_RESOLVING' ? 'HUMAN RESOLVING' : 'HUMAN HANDOFF'}</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-950 text-blue-300 border border-blue-800">

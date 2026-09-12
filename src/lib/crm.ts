@@ -9,7 +9,9 @@ export type LeadStatus =
   | 'TOKEN_PAID'
   | 'BOOKING_CONFIRMED'
   | 'PAYMENT_FAILED'
-  | 'HOLD';
+  | 'HOLD'
+  | 'HUMAN_HANDOFF'
+  | 'HUMAN_RESOLVING';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';

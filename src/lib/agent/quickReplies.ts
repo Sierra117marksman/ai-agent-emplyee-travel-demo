@@ -1,5 +1,5 @@
 import { TravelPackage } from '@/lib/packages';
-import { AgentMemory, QuickReply, PerceptionResult } from './types';
+import { AgentMemory, QuickReply, QuickReplyAction, PerceptionResult } from './types';
 
 export interface QuickReplyContext {
   packages: TravelPackage[];
@@ -36,6 +36,38 @@ function capitalize(s: string): string {
 }
 
 export function generateQuickReplies(context: QuickReplyContext): QuickReply[] {
+  // HUMAN_HANDOFF: Return handoff-specific action chips only
+  if (context.goal === 'HUMAN_HANDOFF') {
+    return [
+      { type: 'action', label: '👤 Talk to a Travel Specialist', value: 'HANDOFF_SPECIALIST', frontendAction: 'HANDOFF_SPECIALIST' as QuickReplyAction },
+      { type: 'action', label: '📞 Request a Call Back', value: 'REQUEST_CALLBACK', frontendAction: 'REQUEST_CALLBACK' as QuickReplyAction },
+      { type: 'action', label: '💬 Continue with Arjun', value: 'CONTINUE_WITH_ARJUN', frontendAction: 'CONTINUE_WITH_ARJUN' as QuickReplyAction },
+    ];
+  }
+
+  const replies = generateQuickRepliesInternal(context);
+
+  // When catalog is completely empty, only return the free_text chip
+  if (context.packages.length === 0 && context.availableDestinations.length === 0) {
+    return replies;
+  }
+
+  // Persistent escape hatch — always visible so customer never needs to defeat the AI to find a person
+  const escapeHatch: QuickReply = {
+    type: 'action',
+    label: '👤 Speak to a Specialist',
+    value: 'HANDOFF_SPECIALIST',
+    frontendAction: 'HANDOFF_SPECIALIST' as QuickReplyAction,
+  };
+
+  if (!replies.some((r) => r.frontendAction === 'HANDOFF_SPECIALIST')) {
+    replies.push(escapeHatch);
+  }
+
+  return replies;
+}
+
+function generateQuickRepliesInternal(context: QuickReplyContext): QuickReply[] {
   const { packages, availableDestinations, memory, goal, perception } = context;
   const prefs = memory.customer.preferences;
 

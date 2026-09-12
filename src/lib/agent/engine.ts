@@ -4,7 +4,9 @@ import {
 import {
   AgentConfig,
   AgentTurnResult,
-  AgentMemory
+  AgentMemory,
+  HandoffReason,
+  QuickReply
 } from './types';
 import { generateQuickReplies } from './quickReplies';
 import { perceiveTurn } from './perception';
@@ -89,12 +91,14 @@ export async function runAgentTurn(
         isPriceObjectionActive: false,
         missingFields: ['destination', 'budget', 'travelers', 'duration'],
         unsupportedDestination: null,
-        turnCount: 0
+        turnCount: 0,
+        resolutionFailureCount: 0
       },
       business: {
         selectedPackageId: null,
         selectedPackageTitle: null,
         leadStatus: 'NEW',
+        activeHandoffId: null,
         tokenOrderId: null,
         tokenPaymentId: null,
         tokenAmount: config.tokenPolicyAmount
@@ -344,6 +348,12 @@ Keep your response warm, consultative, and concise (1-2 paragraphs).`;
 
     memory.conversation.lastAssistantQuestion = explanationText;
 
+    // Increment resolution failure counter if the same conflict fires again
+    if (memory.conversation.lastConflict && perception.constraintConflict &&
+        memory.conversation.lastConflict.reason === perception.constraintConflict.reason) {
+      memory.conversation.resolutionFailureCount = (memory.conversation.resolutionFailureCount || 0) + 1;
+    }
+
     return {
       success: true,
       message: explanationText,
@@ -363,6 +373,11 @@ Keep your response warm, consultative, and concise (1-2 paragraphs).`;
 
   // Goal: HANDLE_PRICE_OBJECTION
   if (plan.goal === 'HANDLE_PRICE_OBJECTION') {
+    // Increment if price objection was already active (stuck in objection loop)
+    if (memory.conversation.isPriceObjectionActive) {
+      memory.conversation.resolutionFailureCount = (memory.conversation.resolutionFailureCount || 0) + 1;
+    }
+
     const objectionResult = await handlePriceObjectionTool.execute(undefined, memory);
 
     const objectionPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
@@ -394,6 +409,89 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
         input: {},
         output: objectionResult
       }
+    };
+  }
+
+  // Goal: HUMAN_HANDOFF
+  if (plan.goal === 'HUMAN_HANDOFF') {
+    const handoffParams = plan.action.parameters as { reason: string; handoffReason?: HandoffReason };
+    const handoffReason: HandoffReason = handoffParams.handoffReason || 'unsupported_request';
+
+    // Build the chat transcript for the dossier from the messages array
+    const dossierTranscript = messages.map((m) => ({ role: m.role, content: m.content }));
+
+    // Build packages shown list
+    const packagesShown = (memory.conversation.lastSurfacedOptions || []);
+
+    // Build objections list
+    const objections: string[] = [];
+    if (memory.conversation.lastObjection) objections.push(memory.conversation.lastObjection);
+    if (memory.conversation.lastConflict) objections.push(memory.conversation.lastConflict.reason);
+
+    const escalation = await escalateToDeskTool.execute(
+      {
+        reason: handoffParams.reason,
+        handoffReason,
+        destination: memory.customer.preferences.destination,
+        dossierData: {
+          customerName: memory.customer.name,
+          customerPhone: memory.customer.phone,
+          customerEmail: memory.customer.email,
+          destination: memory.customer.preferences.destination,
+          budgetPerPerson: memory.customer.preferences.budgetPerPerson,
+          travelers: memory.customer.preferences.travelers,
+          interests: memory.customer.preferences.interests,
+          durationDays: memory.customer.preferences.durationDays,
+          packagesShown,
+          customerObjections: objections,
+          chatTranscript: dossierTranscript,
+        },
+      },
+      memory
+    );
+
+    // Choose message based on reason
+    const handoffMessages: Record<HandoffReason, string> = {
+      customer_requested: `Of course! 🤝 I'm connecting you with one of our human travel specialists right now. They have your full travel brief and will reach out to you shortly. Is there anything specific you'd like them to know?`,
+      repeated_failed_resolution: `I don't want to keep sending you around the same answer. Let me bring in a human travel specialist who can look at your request directly — they have your full brief and will be in touch shortly.`,
+      custom_itinerary: `This sounds like a bespoke journey that deserves personal attention from our senior travel designer! I've flagged your request and they'll reach out to craft something truly special for you.`,
+      complex_exception: `This request is best handled by one of our senior travel specialists who can make the right arrangements. I've escalated it with your full brief — they'll be in touch shortly.`,
+      payment_issue: `Payment and booking issues require direct human assistance. I've escalated this to our senior desk immediately with full transaction details — they will contact you shortly.`,
+      booking_change: `Booking changes on confirmed reservations need to go through our dedicated reservations team. I've sent them your full brief and they'll reach out to assist you.`,
+      refund: `Refund requests require our senior finance and reservations team. I've escalated this with your complete transaction details — they'll be in contact shortly.`,
+      unsupported_request: `This request is best handled by one of our senior travel specialists. I've shared your full travel brief with them and they'll reach out to you shortly.`,
+      high_value_lead: `Given the scale of your journey, one of our senior travel designers would love to assist you personally. I've flagged your brief and they'll reach out shortly.`,
+      human_preference: `Absolutely! 🤝 Connecting you with one of our human travel specialists now. They have your full travel brief and will be in touch shortly.`,
+    };
+
+    const baseHandoffMsg = handoffMessages[handoffReason] || handoffMessages.unsupported_request;
+    const handoffMsg = `${baseHandoffMsg} (Reference: ${escalation.handoffId})`;
+    memory.conversation.lastAssistantQuestion = handoffMsg;
+
+    // Handoff-specific quick replies (frontend-action chips — NOT semantic inputs)
+    const handoffQuickReplies: QuickReply[] = [
+      { type: 'action', label: '👤 Talk to a Travel Specialist', value: 'HANDOFF_SPECIALIST', frontendAction: 'HANDOFF_SPECIALIST' },
+      { type: 'action', label: '📞 Request a Call Back', value: 'REQUEST_CALLBACK', frontendAction: 'REQUEST_CALLBACK' },
+      { type: 'action', label: '💬 Continue with Arjun', value: 'CONTINUE_WITH_ARJUN', frontendAction: 'CONTINUE_WITH_ARJUN' },
+    ];
+
+    return {
+      success: true,
+      message: handoffMsg,
+      qualifyingPackages: [],
+      alternativePackages: [],
+      suggestedPackages: [],
+      isHumanHandoff: true,
+      handoffReason,
+      handoffDossier: escalation.dossier,
+      quickReplies: handoffQuickReplies,
+      extractedLead: getExtractedLead(memory),
+      memory,
+      executedTool: {
+        toolName: escalateToDeskTool.name,
+        input: handoffParams,
+        output: escalation,
+      },
     };
   }
 
@@ -505,6 +603,11 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
 
     const noMatchMsg = explanationMessage;
     memory.conversation.lastAssistantQuestion = noMatchMsg;
+
+    // Increment if we already surfaced zero packages with same constraints last turn
+    if (memory.conversation.lastSurfacedPackages && memory.conversation.lastSurfacedPackages.length === 0) {
+      memory.conversation.resolutionFailureCount = (memory.conversation.resolutionFailureCount || 0) + 1;
+    }
 
     return {
       success: true,

@@ -134,7 +134,7 @@ c_values = [q.get('value') for q in qr_couple]
 
 check("Travelers 2 is extracted in world state", lead_couple.get('travelers') == 2)
 check("Next question offers dynamic budget chips", 'budget' in c_types, f"types: {c_types}")
-check("Budget chip values end with 'per person'", all('per person' in v for v in c_values if 'type_budget' not in v))
+check("Budget chip values end with 'per person'", all('per person' in q.get('value') for q in qr_couple if q.get('type') == 'budget'))
 
 # Step 3D: Visitor selects budget "40000 per person" -> System qualifies and recommends packages!
 r_budget = post_chat([

@@ -1,5 +1,92 @@
 [
   {
+    "id": "lead_1789196516329_741rx",
+    "customerName": "Autonomous Test Lead",
+    "customerPhone": "+91 98765 00000",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 1,
+    "budgetPerPerson": 38500,
+    "tripStyle": "honeymoon",
+    "packageId": "kashmir-heaven-valleys",
+    "packageName": "Kashmir Valley & Houseboat Bliss",
+    "packagePrice": 38500,
+    "tokenAmount": 2000,
+    "currency": "INR",
+    "status": "BOOKING_CONFIRMED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [],
+    "createdAt": "2026-09-12T07:01:56.330Z",
+    "updatedAt": "2026-09-12T07:01:56.688Z",
+    "razorpayOrderId": "order_Tb2HFOiOAnkyVw",
+    "razorpayPaymentId": "pay_AutomatedTestVerified_888"
+  },
+  {
+    "id": "lead_1789192921922_obve7",
+    "customerName": "Prospective Traveler",
+    "customerPhone": "",
+    "customerEmail": "",
+    "destination": "Kashmir",
+    "travelDates": "Flexible",
+    "travelers": 0,
+    "budgetPerPerson": 10000,
+    "tripStyle": "honeymoon",
+    "tokenAmount": 0,
+    "currency": "INR",
+    "status": "QUALIFIED",
+    "agentName": "Arjun Patel (AI Travel Specialist)",
+    "chatTranscript": [
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 Welcome to Wanderlust Journeys. I am Arjun Patel, your Senior Travel Sales Specialist & Concierge. Where are you thinking of traveling, and what kind of trip are you dreaming of? We currently offer curated journeys across Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives.",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "romantic",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Namaste! 🙏 A honeymoon getaway is a wonderful journey. To help our travel designers curate the perfect experience for you from our official portfolio (Bali, Kashmir, Dubai, Kerala, Phuket & Krabi, Maldives), could you kindly share:\n1. Do you have a preferred destination in mind, or are you open to domestic and international options?\n2. What is your approximate budget per person?\n3. How many travelers will be joining and for how many days?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "Kashmir",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on your preferences, here are our recommended itineraries from our catalog:\n\n• **Kashmir Valley & Houseboat Bliss** (6 Days / 5 Nights — ₹38,500/person)\n  *Snow-capped Himalayan peaks, fragrant pine meadows, Gulmarg alpine gondolas, and timeless Dal Lake romance.*\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "my budget is 15k per person",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "We do not currently have a Kashmir package within ₹15,000 per person. Our official Kashmir journey starts at ₹38,500 per person. Would you like to consider expanding your budget for Kashmir, or should we explore other beautiful destinations within ₹15,000?",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "user",
+        "content": "show me for 10k per person",
+        "timestamp": "Just now"
+      },
+      {
+        "role": "assistant",
+        "content": "We do not currently have a Kashmir package within ₹10,000 per person. Our official Kashmir journey starts at ₹38,500 per person. Would you like to consider expanding your budget for Kashmir, or should we explore other beautiful destinations within ₹10,000?",
+        "timestamp": "Just now"
+      }
+    ],
+    "createdAt": "2026-09-12T06:03:19.825Z",
+    "updatedAt": "2026-09-12T06:03:19.825Z"
+  },
+  {
     "id": "lead_1789191689725_zzrpr",
     "customerName": "Autonomous Test Lead",
     "customerPhone": "+91 98765 00000",

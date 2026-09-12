@@ -24,7 +24,40 @@ export type AgentGoal =
   | 'PREPARE_BOOKING_TOKEN'
   | 'HANDLE_UNSUPPORTED_DESTINATION'
   | 'RESOLVE_PAYMENT_INQUIRY'
-  | 'ESCALATE_TO_DESK';
+  | 'ESCALATE_TO_DESK'
+  | 'HUMAN_HANDOFF';
+
+export type HandoffReason =
+  | 'customer_requested'
+  | 'custom_itinerary'
+  | 'complex_exception'
+  | 'payment_issue'
+  | 'booking_change'
+  | 'refund'
+  | 'unsupported_request'
+  | 'repeated_failed_resolution'
+  | 'high_value_lead'
+  | 'human_preference';
+
+export interface HandoffDossier {
+  handoffId: string;
+  reason: HandoffReason;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  customerName: string | null;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  destination: string | null;
+  budgetPerPerson: number | null;
+  travelers: number | null;
+  interests: string[];
+  durationDays: number | null;
+  escalationReason: string;
+  packagesShown: string[];
+  customerObjections: string[];
+  chatTranscript: { role: string; content: string }[];
+  specialistPhone: string; // Populated from TRAVEL_SPECIALIST_PHONE env var
+  createdAt: string;
+}
 
 export type AgentIntent =
   | 'GREETING'
@@ -154,6 +187,7 @@ export interface ConversationMemory {
   missingFields: ('destination' | 'budget' | 'travelers' | 'duration')[];
   unsupportedDestination: string | null;
   turnCount: number;
+  resolutionFailureCount: number;
   lastSurfacedPackages?: TravelPackage[];
   lastSurfacedOptions?: string[];
   lastAssistantQuestion?: string | null;
@@ -164,7 +198,8 @@ export interface ConversationMemory {
 export interface BusinessMemory {
   selectedPackageId: string | null;
   selectedPackageTitle: string | null;
-  leadStatus: 'NEW' | 'QUALIFIED' | 'TOKEN_PENDING' | 'BOOKING_CONFIRMED';
+  leadStatus: 'NEW' | 'QUALIFIED' | 'TOKEN_PENDING' | 'BOOKING_CONFIRMED' | 'HUMAN_HANDOFF' | 'HUMAN_RESOLVING';
+  activeHandoffId: string | null; // Idempotency: one active handoff per conversation
   tokenOrderId: string | null;
   tokenPaymentId: string | null;
   tokenAmount: number;
@@ -231,6 +266,7 @@ export interface PerceptionResult {
   isCustomTokenAttempt: boolean;
   isUnverifiedPaymentClaim: boolean;
   isBookingIntent: boolean;
+  isHumanHandoffRequest: boolean;
   selectedOptionNumber: number | null;
   customerPhone: string | null;
   customerEmail: string | null;
@@ -245,6 +281,9 @@ export interface AgentTurnResult {
   qualifyingPackages: TravelPackage[];
   alternativePackages: AlternativePackage[];
   suggestedPackages: TravelPackage[]; // Strictly qualifyingPackages (invariant)
+  isHumanHandoff?: boolean;
+  handoffReason?: HandoffReason;
+  handoffDossier?: HandoffDossier;
   extractedLead: {
     tripStyle: string | null;
     interests: string[];
@@ -272,6 +311,12 @@ export interface AgentTurnResult {
   quickReplies?: QuickReply[];
 }
 
+// =========================================================================
+// QuickReply: action chips are handled by the frontend locally and never
+// sent back through /api/chat. Semantic chips dispatch their value as
+// natural-language user input. This prevents action chips from triggering
+// the planner (e.g. handoff_specialist → HUMAN_HANDOFF → infinite loop).
+// =========================================================================
 export type QuickReplyType =
   | 'interest'
   | 'destination'
@@ -281,10 +326,18 @@ export type QuickReplyType =
   | 'action'
   | 'free_text';
 
+// Action identifiers for frontend-only action chips.
+export type QuickReplyAction =
+  | 'HANDOFF_SPECIALIST'
+  | 'REQUEST_CALLBACK'
+  | 'CONTINUE_WITH_ARJUN';
+
 export interface QuickReply {
   type: QuickReplyType;
   label: string;
   value: string | number;
+  /** Only set when type === 'action' and the chip should be handled by the
+   *  frontend without dispatching to /api/chat. */
+  frontendAction?: QuickReplyAction;
   category?: string;
 }
-

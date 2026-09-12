@@ -1,4 +1,4 @@
-import { AgentGoal, AgentMemory, PerceptionResult, AgentAction } from './types';
+import { AgentGoal, AgentMemory, PerceptionResult, AgentAction, HandoffReason } from './types';
 import { qualifyLeadTool, SearchPackagesInput } from './tools';
 
 export interface PlanResult {
@@ -110,6 +110,53 @@ export async function planNextAction(
         goal: 'HANDLE_UNSUPPORTED_DESTINATION'
       },
       notes: `Uncataloged destination: ${perception.requestedUncatalogedDestination}`
+    };
+  }
+
+  // Scenario 6b: Explicit human handoff request (highest priority override)
+  if (perception.isHumanHandoffRequest) {
+    return {
+      goal: 'HUMAN_HANDOFF',
+      action: {
+        toolName: 'escalate_to_desk',
+        parameters: { reason: 'Customer explicitly requested a human agent', handoffReason: 'customer_requested' as HandoffReason },
+        reasoning: 'Customer explicitly requested to speak with a human. Immediate handoff — no qualification questions.',
+        goal: 'HUMAN_HANDOFF'
+      },
+      notes: 'Explicit human handoff request.'
+    };
+  }
+
+  // Scenario 6c: Repeated resolution failure (≥3 stuck turns)
+  if (memory.conversation.resolutionFailureCount >= 3) {
+    return {
+      goal: 'HUMAN_HANDOFF',
+      action: {
+        toolName: 'escalate_to_desk',
+        parameters: { reason: `Repeated resolution failure after ${memory.conversation.resolutionFailureCount} stuck turns`, handoffReason: 'repeated_failed_resolution' as HandoffReason },
+        reasoning: 'Customer and agent have been stuck in the same resolution loop. Escalating to human.',
+        goal: 'HUMAN_HANDOFF'
+      },
+      notes: `Resolution failure count: ${memory.conversation.resolutionFailureCount}`
+    };
+  }
+
+  // Scenario 6d: Complex request requiring human specialist
+  const complexKeywords = /\b(?:custom\s+itinerary|bespoke|corporate\s+group|group\s+of\s+(?:[2-9]\d|\d{3,})|refund|refunds|i\s+want\s+(?:my\s+)?(?:money\s+back|refund)|change\s+(?:my\s+)?(?:confirmed\s+)?booking|cancel\s+(?:my\s+)?booking|visa\s+(?:requirement|issue|problem)|i\s+paid\s+but|payment\s+(?:issue|problem|failed|not|stuck|pending)|booking\s+(?:says\s+pending|not\s+confirmed))\b/i;
+  if (complexKeywords.test(perception.latestUserText)) {
+    const isPaymentIssue = /\b(?:refund|money\s+back|i\s+paid\s+but|payment\s+(?:issue|problem|failed|stuck|pending)|booking\s+(?:says\s+pending|not\s+confirmed))\b/i.test(perception.latestUserText);
+    const isBookingChange = /\b(?:change|cancel)\s+(?:my\s+)?(?:confirmed\s+)?booking\b/i.test(perception.latestUserText);
+    const isRefund = /\b(?:refund|money\s+back)\b/i.test(perception.latestUserText);
+    const handoffReason: HandoffReason = isRefund ? 'refund' : isPaymentIssue ? 'payment_issue' : isBookingChange ? 'booking_change' : 'custom_itinerary';
+    return {
+      goal: 'HUMAN_HANDOFF',
+      action: {
+        toolName: 'escalate_to_desk',
+        parameters: { reason: `Complex request detected: ${perception.latestUserText.slice(0, 80)}`, handoffReason },
+        reasoning: 'Complex request that requires human specialist (custom itinerary, group, payment, visa, booking change).',
+        goal: 'HUMAN_HANDOFF'
+      },
+      notes: `Complex handoff reason: ${handoffReason}`
     };
   }
 

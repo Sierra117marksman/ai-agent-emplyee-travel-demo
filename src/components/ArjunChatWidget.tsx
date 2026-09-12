@@ -9,7 +9,7 @@ import React, {
   useCallback
 } from 'react';
 import { TravelPackage } from '@/lib/packages';
-import { QuickReply } from '@/lib/agent/types';
+import { QuickReply, HandoffDossier } from '@/lib/agent/types';
 import {
   X,
   Send,
@@ -97,6 +97,8 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [isHumanHandoffActive, setIsHumanHandoffActive] = useState(false);
+  const [handoffDossier, setHandoffDossier] = useState<HandoffDossier | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Lazy initialize leadId without synchronous setState in effect
@@ -216,6 +218,12 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
           if (data.quickReplies && Array.isArray(data.quickReplies)) {
             setQuickReplies(data.quickReplies);
           }
+          if (data.isHumanHandoff) {
+            setIsHumanHandoffActive(true);
+            if (data.handoffDossier) {
+              setHandoffDossier(data.handoffDossier);
+            }
+          }
 
           if (data.extractedLead?.customerName && !customerName) {
             setCustomerName(data.extractedLead.customerName);
@@ -240,7 +248,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
                 travelers: data.extractedLead?.travelers,
                 budgetPerPerson: data.extractedLead?.budgetPerPerson,
                 tripStyle: data.extractedLead?.tripStyle,
-                status: 'QUALIFIED',
+                status: data.isHumanHandoff ? 'HUMAN_HANDOFF' : 'QUALIFIED',
                 chatTranscript: [...messages, userMsg, assistantMsg].map((m) => ({
                   role: m.role,
                   content: m.content,
@@ -289,6 +297,53 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
 
   const handleQuickReplyClick = useCallback(
     (reply: QuickReply) => {
+      // Action chips are handled locally by the frontend — never sent to /api/chat
+      if (reply.frontendAction) {
+        switch (reply.frontendAction) {
+          case 'HANDOFF_SPECIALIST': {
+            const phone = handoffDossier?.specialistPhone;
+            if (phone) {
+              window.open(
+                `https://wa.me/91${phone}?text=${encodeURIComponent(
+                  'Hi, I was chatting with Arjun and would like to speak with a travel specialist.'
+                )}`,
+                '_blank'
+              );
+            }
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `sys_${Date.now()}`,
+                role: 'assistant',
+                content: `🤝 A travel specialist has been notified. They have your complete travel brief and will reach out shortly${
+                  phone ? ` (Direct Desk: ${phone})` : ''
+                }.`,
+                timestamp: 'Just now'
+              }
+            ]);
+            return;
+          }
+          case 'REQUEST_CALLBACK': {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `sys_${Date.now()}`,
+                role: 'assistant',
+                content: `📞 Our specialist will call you directly. If you haven't shared your contact number yet, please type it below so we can reach you right away.`,
+                timestamp: 'Just now'
+              }
+            ]);
+            inputRef.current?.focus();
+            return;
+          }
+          case 'CONTINUE_WITH_ARJUN': {
+            setIsHumanHandoffActive(false);
+            void handleSendMessage('Let us continue exploring options with Arjun.');
+            return;
+          }
+        }
+      }
+
       if (reply.type === 'free_text') {
         inputRef.current?.focus();
         return;
@@ -296,7 +351,7 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
       // CRITICAL: Always dispatch reply.value (semantic value), NEVER reply.label (presentation text/emojis)
       void handleSendMessage(String(reply.value));
     },
-    [handleSendMessage]
+    [handleSendMessage, handoffDossier]
   );
 
   // Expose imperative handle for clean event-driven communication without cascading effects
@@ -476,6 +531,19 @@ const ArjunChatWidget = forwardRef<ArjunChatWidgetRef, ArjunChatWidgetProps>(fun
             </span>
             <span className="text-slate-400">Razorpay Verified</span>
           </div>
+
+          {/* Human Handoff Active Banner */}
+          {isHumanHandoffActive && (
+            <div className="bg-amber-950/80 border-b border-amber-800/60 px-4 py-2 flex items-center justify-between text-[11px] text-amber-200 shrink-0">
+              <span className="flex items-center gap-1.5 font-medium">
+                <span>🤝</span>
+                <span>Human Travel Specialist Notified — Case #{handoffDossier?.handoffId || 'ACTIVE'}</span>
+              </span>
+              <span className="text-[10px] bg-amber-800/60 text-amber-100 px-2 py-0.5 rounded-full font-semibold">
+                Priority: {handoffDossier?.priority || 'HIGH'}
+              </span>
+            </div>
+          )}
 
           {/* Message Stream */}
           <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-4 bg-slate-950/60">
