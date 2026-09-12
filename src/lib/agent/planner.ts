@@ -26,7 +26,21 @@ export async function planNextAction(
     };
   }
 
-  // Scenario 1: Unverified payment assertion
+  // Scenario 1: Information Query (Cat AA: e.g. "Is Goa expensive?", "Does Kashmir have snow?")
+  if (perception.intent === 'INFO_QUERY') {
+    return {
+      goal: 'ANSWER_INFO_QUERY',
+      action: {
+        toolName: 'qualify_lead',
+        parameters: memory.customer.preferences,
+        reasoning: 'Customer asked an informational question about a place rather than booking.',
+        goal: 'ANSWER_INFO_QUERY'
+      },
+      notes: 'Information discovery query.'
+    };
+  }
+
+  // Scenario 2: Unverified payment assertion
   if (perception.isUnverifiedPaymentClaim) {
     return {
       goal: 'RESOLVE_PAYMENT_INQUIRY',
@@ -40,7 +54,7 @@ export async function planNextAction(
     };
   }
 
-  // Scenario 2: Unauthorized custom token attempt
+  // Scenario 3: Unauthorized custom token attempt
   if (perception.isCustomTokenAttempt) {
     return {
       goal: 'PREPARE_BOOKING_TOKEN',
@@ -54,7 +68,35 @@ export async function planNextAction(
     };
   }
 
-  // Scenario 3: Uncataloged destination requested
+  // Scenario 4: Ambiguity Detected (Cat C, U: e.g. "casino like LA", competing referents "that one")
+  if (perception.ambiguity && perception.ambiguity.length > 0) {
+    return {
+      goal: 'CLARIFY_AMBIGUITY',
+      action: {
+        toolName: 'qualify_lead',
+        parameters: memory.customer.preferences,
+        reasoning: perception.ambiguity[0].reason,
+        goal: 'CLARIFY_AMBIGUITY'
+      },
+      notes: `Ambiguity in field: ${perception.ambiguity[0].field}`
+    };
+  }
+
+  // Scenario 5: Constraint Conflict Detected (Cat F: e.g. "Maldives under 10k")
+  if (perception.constraintConflict && perception.constraintConflict.detected) {
+    return {
+      goal: 'EXPLAIN_CONFLICT',
+      action: {
+        toolName: 'qualify_lead',
+        parameters: memory.customer.preferences,
+        reasoning: perception.constraintConflict.reason,
+        goal: 'EXPLAIN_CONFLICT'
+      },
+      notes: `Conflict type: ${perception.constraintConflict.type}`
+    };
+  }
+
+  // Scenario 6: Uncataloged destination requested
   if (perception.requestedUncatalogedDestination && !perception.destination) {
     return {
       goal: 'HANDLE_UNSUPPORTED_DESTINATION',
@@ -71,7 +113,7 @@ export async function planNextAction(
     };
   }
 
-  // Scenario 4: Price / budget objection
+  // Scenario 7: Price / budget objection
   if (perception.isPriceObjection) {
     return {
       goal: 'HANDLE_PRICE_OBJECTION',
@@ -85,7 +127,7 @@ export async function planNextAction(
     };
   }
 
-  // Scenario 5: Qualification gate evaluation
+  // Scenario 8: Qualification gate evaluation
   const qualification = await qualifyLeadTool.execute(memory.customer.preferences, memory);
   if (!qualification.isQualified) {
     return {
@@ -100,7 +142,7 @@ export async function planNextAction(
     };
   }
 
-  // Scenario 6: Booking intent
+  // Scenario 9: Booking intent
   if (perception.isBookingIntent) {
     return {
       goal: 'PREPARE_BOOKING_TOKEN',
@@ -117,7 +159,7 @@ export async function planNextAction(
     };
   }
 
-  // Scenario 7: Fully qualified -> Search & Recommend Packages
+  // Scenario 10: Fully qualified -> Search & Recommend Packages
   const searchParams: SearchPackagesInput = {
     text: perception.latestUserText,
     destination: memory.customer.preferences.destination,
@@ -125,6 +167,8 @@ export async function planNextAction(
     maxBudget: memory.customer.preferences.budgetPerPerson,
     tripType: memory.customer.preferences.tripStyle,
     interests: memory.customer.preferences.interests,
+    excludedDestinations: memory.customer.preferences.excludedDestinations,
+    excludedInterests: memory.customer.preferences.excludedInterests,
     durationDays: memory.customer.preferences.durationDays,
     isDomesticOnly: memory.customer.preferences.isDomesticOnly,
     excludePackageId: memory.customer.preferences.excludePackageId

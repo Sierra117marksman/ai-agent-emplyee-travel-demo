@@ -77,6 +77,8 @@ export async function runAgentTurn(
           durationDays: null,
           tripStyle: null,
           interests: [],
+          excludedInterests: [],
+          excludedDestinations: [],
           isDomesticOnly: false
         }
       },
@@ -107,12 +109,17 @@ export async function runAgentTurn(
       extractedLead: {
         tripStyle: null,
         interests: [],
+        excludedInterests: [],
+        excludedDestinations: [],
         destination: null,
         destinationFlexibility: 'unknown',
         budgetPerPerson: null,
         travelers: null,
         durationDays: null,
-        isDomesticOnly: false
+        isDomesticOnly: false,
+        ambiguity: null,
+        constraintConflict: null,
+        requirementMode: undefined
       },
       memory: initialMemory
     };
@@ -134,6 +141,8 @@ export async function runAgentTurn(
   const getExtractedLead = (mem: AgentMemory) => ({
     tripStyle: mem.customer.preferences.tripStyle,
     interests: mem.customer.preferences.interests,
+    excludedInterests: mem.customer.preferences.excludedInterests,
+    excludedDestinations: mem.customer.preferences.excludedDestinations,
     destination: mem.customer.preferences.destination,
     destinationFlexibility: mem.customer.preferences.destinationFlexibility,
     budgetPerPerson: mem.customer.preferences.budgetPerPerson,
@@ -142,7 +151,10 @@ export async function runAgentTurn(
     isDomesticOnly: mem.customer.preferences.isDomesticOnly,
     customerName: mem.customer.name,
     customerPhone: mem.customer.phone,
-    customerEmail: mem.customer.email
+    customerEmail: mem.customer.email,
+    ambiguity: mem.conversation.lastAmbiguity ? [mem.conversation.lastAmbiguity] : (perception.ambiguity && perception.ambiguity.length > 0 ? perception.ambiguity : null),
+    constraintConflict: mem.conversation.lastConflict || perception.constraintConflict || null,
+    requirementMode: perception.destination?.relation === 'INFO_QUERY' ? 'EXPLORATORY' as const : (perception.budget ? perception.budget.mode : (perception.travelers ? perception.travelers.mode : 'ACTUAL_REQUIREMENT' as const))
   });
 
   // 4. Execution & Synthesis Phase by Goal
@@ -229,6 +241,100 @@ export async function runAgentTurn(
     };
   }
 
+  // Goal: ANSWER_INFO_QUERY (Cat AA: e.g. "Is Goa expensive?", "Does Kashmir have snow?")
+  if (plan.goal === 'ANSWER_INFO_QUERY') {
+    const infoPrompt = `You are ${config.name}, ${config.role} at ${config.companyName}.
+The traveler is asking an informational or general knowledge question: "${perception.latestUserText}".
+DIRECTIVES:
+1. Provide a knowledgeable, warm, and helpful answer to their question.
+2. If the destination is in our official portfolio (${availableDestinations.join(', ')}), highlight what makes it special and ask if they'd like to explore itineraries there.
+3. If the destination is outside our portfolio (like Goa or Daman), politely explain that our official portfolio focuses on ${availableDestinations.join(', ')}, but offer related alternatives.
+4. DO NOT recommend or suggest specific package booking cards yet (suggestedPackages = []).
+Keep your response warm, consultative, and concise (1-2 paragraphs).`;
+
+    const assistantReply = await queryGroq(infoPrompt, messages);
+    let fallbackReply = `That is a wonderful question! Regarding ${perception.latestUserText.trim().replace(/\?+$/, '')}, our official 2026 portfolio is curated exclusively across ${availableDestinations.join(', ')}. `;
+    const qLower = perception.latestUserText.toLowerCase();
+    if (qLower.includes('snow') || qLower.includes('kashmir')) {
+      fallbackReply = `Yes! Kashmir, particularly Gulmarg, experiences magnificent snowfall and transforms into a magical winter wonderland typically from December through February. Our curated Kashmir journeys feature luxury heated stays, private gondola excursions, and traditional shikara rides. Would you like to explore a winter holiday in Kashmir?`;
+    } else if (qLower.includes('goa')) {
+      fallbackReply = `Goa offers a wide range of experiences, from bustling beach shacks to boutique luxury resorts. While Goa is not currently part of our official portfolio (${availableDestinations.join(', ')}), we curate world-class beach journeys in Bali, Kerala, and Phuket & Krabi! Would you like to explore those?`;
+    } else if (qLower.includes('daman') || qLower.includes('devka')) {
+      fallbackReply = `Devka Beach in Daman is known for its picturesque rocky shoreline and peaceful sunset walks. While Daman is not in our official luxury portfolio (${availableDestinations.join(', ')}), we offer spectacular coastal getaways in Kerala, Bali, and Phuket! Would you like to explore those?`;
+    }
+
+    const messageText = assistantReply || fallbackReply;
+    memory.conversation.lastAssistantQuestion = messageText;
+
+    return {
+      success: true,
+      message: messageText,
+      qualifyingPackages: [],
+      alternativePackages: [],
+      suggestedPackages: [],
+      extractedLead: getExtractedLead(memory),
+      memory,
+      executedTool: {
+        toolName: 'qualify_lead',
+        input: memory.customer.preferences,
+        output: { isQualified: false, isInfoQuery: true }
+      }
+    };
+  }
+
+  // Goal: CLARIFY_AMBIGUITY (Cat C, U: e.g. "casino like LA", competing referents "that one")
+  if (plan.goal === 'CLARIFY_AMBIGUITY') {
+    const amb = (perception.ambiguity && perception.ambiguity.length > 0)
+      ? perception.ambiguity[0]
+      : memory.conversation.lastAmbiguity;
+
+    const questionText = amb?.clarificationQuestion ||
+      (amb?.candidates && amb.candidates.length > 0
+        ? `Could you clarify which itinerary you are referring to? We previously explored: ${amb.candidates.join(' and ')}.`
+        : `Could you kindly clarify your preference so our travel designers can best assist you?`);
+
+    memory.conversation.lastAssistantQuestion = questionText;
+
+    return {
+      success: true,
+      message: questionText,
+      qualifyingPackages: [],
+      alternativePackages: [],
+      suggestedPackages: [],
+      extractedLead: getExtractedLead(memory),
+      memory,
+      executedTool: {
+        toolName: 'qualify_lead',
+        input: memory.customer.preferences,
+        output: { isQualified: false, ambiguity: amb }
+      }
+    };
+  }
+
+  // Goal: EXPLAIN_CONFLICT (Cat F: e.g. "Maldives under 10k")
+  if (plan.goal === 'EXPLAIN_CONFLICT') {
+    const conflict = perception.constraintConflict || memory.conversation.lastConflict;
+    const explanationText = conflict?.explanation ||
+      `We noticed a constraint conflict: ${conflict?.reason || 'your requested budget or duration is below our portfolio requirements'}. Would you like to consider expanding your budget, or exploring other destinations within our official portfolio (${availableDestinations.join(', ')})?`;
+
+    memory.conversation.lastAssistantQuestion = explanationText;
+
+    return {
+      success: true,
+      message: explanationText,
+      qualifyingPackages: [],
+      alternativePackages: [],
+      suggestedPackages: [],
+      extractedLead: getExtractedLead(memory),
+      memory,
+      executedTool: {
+        toolName: 'qualify_lead',
+        input: memory.customer.preferences,
+        output: { isQualified: false, conflict }
+      }
+    };
+  }
+
   // Goal: HANDLE_PRICE_OBJECTION
   if (plan.goal === 'HANDLE_PRICE_OBJECTION') {
     const objectionResult = await handlePriceObjectionTool.execute(undefined, memory);
@@ -245,9 +351,12 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
     const assistantReply = await queryGroq(objectionPrompt, messages);
     const fallbackReply = `I completely understand! We want to make sure your journey offers exceptional luxury while remaining comfortably within your budget. What budget per person would you be comfortable with for this trip? Once you share your target budget, I will immediately review our catalog to recommend options that align with your financial comfort.`;
 
+    const objectionMsg = assistantReply || fallbackReply;
+    memory.conversation.lastAssistantQuestion = objectionMsg;
+
     return {
       success: true,
-      message: assistantReply || fallbackReply,
+      message: objectionMsg,
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
@@ -311,9 +420,12 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
 3. How many travelers will be joining and for how many days?`;
     }
 
+    const qualifyMsg = assistantReply || fallbackPrompt;
+    memory.conversation.lastAssistantQuestion = qualifyMsg;
+
     return {
       success: true,
-      message: assistantReply || fallbackPrompt,
+      message: qualifyMsg,
       qualifyingPackages: [],
       alternativePackages: [],
       suggestedPackages: [],
@@ -363,9 +475,12 @@ Keep your response warm, concise, and helpful (1-2 short paragraphs).`;
       explanationMessage = `We could not find matching itineraries in our catalog for your exact criteria. Our official destinations include: ${availableDestinations.join(', ')}. Would you like to explore alternative options?`;
     }
 
+    const noMatchMsg = explanationMessage;
+    memory.conversation.lastAssistantQuestion = noMatchMsg;
+
     return {
       success: true,
-      message: explanationMessage,
+      message: noMatchMsg,
       qualifyingPackages: [],
       alternativePackages,
       suggestedPackages: [], // strictly empty
@@ -430,6 +545,10 @@ CURRENT CUSTOMER REQUIREMENTS (EXTRACTED):
       assistantText = `Based on your preferences, here are our recommended itineraries from our catalog:\n\n${listText}\n\nBoth include private accommodations and chauffeur transfers. You can reserve your departure with a refundable **₹2,000 booking token**, and our senior advisor will contact you to finalize flights and custom details. Which one would you prefer?`;
     }
   }
+
+  memory.conversation.lastSurfacedPackages = topQualifying;
+  memory.conversation.lastSurfacedOptions = topQualifying.map((p) => p.name);
+  memory.conversation.lastAssistantQuestion = assistantText;
 
   return {
     success: true,

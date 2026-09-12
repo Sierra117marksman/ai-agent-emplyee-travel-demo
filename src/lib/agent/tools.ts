@@ -14,6 +14,8 @@ export interface SearchPackagesInput {
   maxBudget?: number | null;
   tripType?: string | null;
   interests?: string[];
+  excludedDestinations?: string[];
+  excludedInterests?: string[];
   durationDays?: number | null;
   isDomesticOnly?: boolean;
   excludePackageId?: string | null;
@@ -36,6 +38,8 @@ export const searchPackagesTool: AgentTool<SearchPackagesInput, SearchPackagesRe
       maxBudget: input.maxBudget || undefined,
       tripType: input.tripType || undefined,
       interests: input.interests,
+      excludedDestinations: input.excludedDestinations,
+      excludedInterests: input.excludedInterests,
       durationDays: input.durationDays || undefined,
       isDomesticOnly: input.isDomesticOnly || false,
       excludePackageId: input.excludePackageId || undefined

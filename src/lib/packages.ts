@@ -268,6 +268,8 @@ export interface CatalogSearchQuery {
   maxBudget?: number;
   tripType?: string;
   interests?: string[];
+  excludedDestinations?: string[];
+  excludedInterests?: string[];
   durationDays?: number;
   isDomesticOnly?: boolean;
   excludePackageId?: string;
@@ -293,6 +295,8 @@ export interface CatalogSearchResult {
  * 2. Budget constraint (pkg.pricePerPerson <= query.maxBudget)
  * 3. Domestic India constraint (if isDomesticOnly === true)
  * 4. Package exclusion constraint (if excludePackageId is present)
+ * 5. Excluded destinations constraint (if excludedDestinations contains destination)
+ * 6. Excluded interests constraint (if excludedInterests contains primary package interest)
  * 
  * The LLM cannot override, weaken, reinterpret, or bypass these constraints.
  * If zero packages satisfy the constraints:
@@ -311,6 +315,8 @@ export function queryCatalogDetailed(query: CatalogSearchQuery): CatalogSearchRe
   const tripTypeTerm = (query.tripType || '').toLowerCase().trim();
   const isDestHard = Boolean(destTerm && query.destinationFlexibility !== 'yes');
   const interests = (query.interests || []).map((i) => i.toLowerCase().trim());
+  const excludedDests = (query.excludedDestinations || []).map((d) => d.toLowerCase().trim());
+  const excludedInterests = (query.excludedInterests || []).map((i) => i.toLowerCase().trim());
 
   for (const pkg of TRAVEL_PACKAGES) {
     // Hard Constraint 1: Explicit package exclusion
@@ -320,6 +326,28 @@ export function queryCatalogDetailed(query: CatalogSearchQuery): CatalogSearchRe
 
     // Hard Constraint 2: Domestic India only
     if (query.isDomesticOnly && !pkg.isDomesticIndia) {
+      continue;
+    }
+
+    // Hard Constraint 3: Excluded destinations (Negation: e.g. "anything except Goa")
+    if (
+      excludedDests.some(
+        (ex) =>
+          pkg.destination.toLowerCase().includes(ex) ||
+          pkg.country.toLowerCase().includes(ex)
+      )
+    ) {
+      continue;
+    }
+
+    // Hard Constraint 4: Excluded interests (Negation: e.g. "I don't want beaches", "no mountains")
+    if (
+      excludedInterests.some(
+        (ex) =>
+          pkg.category.toLowerCase().includes(ex) ||
+          pkg.interests.some((pi) => pi.toLowerCase().includes(ex))
+      )
+    ) {
       continue;
     }
 
